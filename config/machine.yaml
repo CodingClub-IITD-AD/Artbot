@@ -1,0 +1,33 @@
+# ArtBot Machine Configuration
+# All dimensions in millimeters
+
+machine:
+  frame_width_mm: 1800
+  frame_height_mm: 1200
+  buffer_mm: 50
+  # Derived: work_area = frame - 2*buffer
+  work_area_width_mm: 1700
+  work_area_height_mm: 1100
+  origin: "top-left"
+
+motion:
+  draw_feed_rate: 3000    # mm/min - pen-down drawing speed
+  rapid_feed_rate: 5000   # mm/min - pen-up travel speed
+  steps_per_mm: 80.0      # GT2 belt, 20T pulley, 1/16 microstepping
+
+pen:
+  down_command: "M3 S90"  # Servo to drawing angle
+  up_command: "M5"        # Servo to raised position
+  settle_time_ms: 150     # Dwell after pen state change
+
+processing:
+  mode: "auto"            # auto | sketch | photo
+  # Canny edge detection (for photos)
+  canny_low: 50
+  canny_high: 150
+  blur_kernel: 5
+  # Threshold (for sketches / line art)
+  threshold: 128
+  # Contour simplification
+  simplify_epsilon: 1.5   # Douglas-Peucker tolerance in mm
+  min_contour_points: 3   # Discard contours with fewer points
