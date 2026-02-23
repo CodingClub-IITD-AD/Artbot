@@ -64,8 +64,13 @@ def main():
     binary = detect_edges(gray, mode=args.mode, config=config)
 
     print("[3/5] Extracting contours")
-    contours = extract_contours(binary)
-    print(f"       Found {len(contours)} raw contours")
+    proc = config.get("processing", {})
+    contours = extract_contours(
+        binary,
+        min_arc_length=proc.get("min_arc_length", 20),
+        min_area=proc.get("min_contour_area", 50),
+    )
+    print(f"       Found {len(contours)} contours (after filtering)")
 
     print("[4/5] Scaling, simplifying & sorting paths")
     proc = config.get("processing", {})
