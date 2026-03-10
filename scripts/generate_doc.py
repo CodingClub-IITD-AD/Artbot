@@ -98,11 +98,8 @@ def draw_system_overview():
     ax.plot(carriage_x, rail_y - 1.15, "v", color="#01579B", markersize=8, zorder=5)
     ax.text(carriage_x + 0.3, rail_y - 1.0, "Pen", fontsize=6, color="#01579B")
 
-    # Counterweight indicators
-    for x_pos in [0.5, 9.5]:
-        ax.annotate("", xy=(x_pos, rail_y - 0.1), xytext=(x_pos, 0.5),
-                     arrowprops=dict(arrowstyle="<->", color="#888", lw=1))
-    ax.text(10.2, 2.0, "Counter-\nweights\n(behind\nboard)", fontsize=6, color="#888", ha="left")
+    # Direct drive note
+    ax.text(10.2, 2.0, "No counter-\nweights\n(NEMA 23\ndirect drive)", fontsize=6, color="#2E7D32", ha="left")
 
     # Arrows showing motion
     ax.annotate("", xy=(7.5, rail_y - 0.4), xytext=(3.5, rail_y - 0.4),
@@ -206,14 +203,14 @@ def draw_architecture_comparison():
     return path
 
 
-def draw_counterweight_diagram():
-    """Side view showing the counterweight mechanism."""
+def draw_direct_drive_diagram():
+    """Side view showing the direct-drive Y-axis (no counterweights)."""
     fig, ax = plt.subplots(figsize=(6, 5))
     ax.set_xlim(-1, 11)
     ax.set_ylim(-2, 9)
     ax.set_aspect("equal")
     ax.axis("off")
-    ax.set_title("Counterweight System — Side View", fontsize=12, fontweight="bold", pad=10)
+    ax.set_title("Direct-Drive Y-Axis — Side View (No Counterweights)", fontsize=11, fontweight="bold", pad=10)
 
     # Board (side view - thin rectangle)
     ax.add_patch(Rectangle((2, 0), 0.3, 7, facecolor="#E0E0E0", edgecolor="#333", lw=1.5))
@@ -223,11 +220,11 @@ def draw_counterweight_diagram():
     ax.plot([2.3, 2.3], [0.5, 6.5], color="#1565C0", lw=4, zorder=3)
     ax.text(3.0, 6.5, "Y-Rail", fontsize=7, color="#1565C0")
 
-    # Motor at top
-    motor = FancyBboxPatch((1.8, 7.0), 1.0, 0.7, boxstyle="round,pad=0.05",
+    # NEMA 23 Motor at top (bigger than NEMA 17)
+    motor = FancyBboxPatch((1.6, 7.0), 1.4, 0.9, boxstyle="round,pad=0.05",
                             facecolor="#E53935", edgecolor="#B71C1C", lw=1.5, zorder=5)
     ax.add_patch(motor)
-    ax.text(2.3, 7.35, "Motor Y", ha="center", fontsize=6, color="white", fontweight="bold", zorder=6)
+    ax.text(2.3, 7.45, "NEMA 23\nMotor Y", ha="center", fontsize=6, color="white", fontweight="bold", zorder=6)
 
     # X-Rail (cross section - small square on the rail)
     rail_y = 4.0
@@ -236,46 +233,40 @@ def draw_counterweight_diagram():
     ax.add_patch(rail)
     ax.text(3.3, rail_y, "X-Rail\n(end view)", fontsize=7, color="#FF8F00")
 
-    # Belt from motor to rail (front)
+    # Belt from motor to rail
     ax.plot([2.3, 2.3], [7.0, rail_y + 0.3], color="#E53935", lw=1.5, linestyle="--", zorder=2)
-    ax.text(1.5, 5.5, "Belt\n(front)", fontsize=6, color="#E53935")
+    ax.text(1.3, 5.5, "Belt", fontsize=6, color="#E53935")
 
-    # Pulley at top (behind board)
-    ax.plot(1.5, 7.5, "o", color="#333", markersize=8, zorder=5)
-    ax.text(0.8, 7.8, "Pulley", fontsize=6)
+    # Idler at bottom
+    ax.plot(2.3, 0.5, "o", color="#333", markersize=8, zorder=5)
+    ax.text(1.3, 0.3, "Idler", fontsize=6)
 
-    # Cable from rail going up and over pulley, then down behind
-    # Cable up from rail
-    ax.plot([2.1, 2.1, 1.5], [rail_y, 7.2, 7.5], color="#666", lw=1.5, zorder=2)
-    # Cable down behind board
-    ax.plot([1.5, 1.5], [7.5, 1.0], color="#666", lw=1.5, zorder=2)
+    # Belt from rail to idler
+    ax.plot([2.3, 2.3], [rail_y - 0.3, 0.5], color="#E53935", lw=1.5, linestyle="--", zorder=2)
 
-    # Counterweight
-    cw = FancyBboxPatch((1.0, 0.5), 1.0, 1.0, boxstyle="round,pad=0.05",
-                         facecolor="#78909C", edgecolor="#37474F", lw=1.5, zorder=5)
-    ax.add_patch(cw)
-    ax.text(1.5, 1.0, "Counter\nweight", ha="center", fontsize=6, color="white", fontweight="bold", zorder=6)
-
-    # Gravity arrows
-    ax.annotate("", xy=(2.5, rail_y - 1.0), xytext=(2.5, rail_y - 0.3),
+    # Gravity arrow
+    ax.annotate("", xy=(2.5, rail_y - 1.2), xytext=(2.5, rail_y - 0.3),
                 arrowprops=dict(arrowstyle="->", color="#C62828", lw=2))
-    ax.text(3.0, rail_y - 0.8, "Gravity\n(pulls rail down)", fontsize=6, color="#C62828")
+    ax.text(3.0, rail_y - 1.0, "Gravity", fontsize=6, color="#C62828")
 
-    ax.annotate("", xy=(1.5, 0.3), xytext=(1.5, 0.8),
+    # Motor torque arrow (upward)
+    ax.annotate("", xy=(2.0, rail_y + 0.8), xytext=(2.0, rail_y + 0.3),
                 arrowprops=dict(arrowstyle="->", color="#2E7D32", lw=2))
-    ax.text(0.0, 0.0, "Gravity pulls\nweight down\n= lifts rail up", fontsize=6, color="#2E7D32")
+    ax.text(0.5, rail_y + 0.6, "Motor\ntorque", fontsize=6, color="#2E7D32")
 
-    # Balance equation
-    ax.text(5.5, 5.5, "Balanced System:", fontsize=9, fontweight="bold")
-    ax.text(5.5, 4.8, "Counterweight mass ≈ Rail assembly mass", fontsize=8)
-    ax.text(5.5, 4.0, "Result: Rail is \"weightless\"", fontsize=8, color="#2E7D32")
-    ax.text(5.5, 3.2, "Motors only control position,", fontsize=8)
-    ax.text(5.5, 2.6, "not lifting force.", fontsize=8)
-    ax.text(5.5, 1.5, "Test: Push rail with ONE finger.", fontsize=8, style="italic")
-    ax.text(5.5, 0.9, "It should stay where you leave it.", fontsize=8, style="italic")
+    # Info text
+    ax.text(5.5, 6.0, "Direct Drive (No Counterweights):", fontsize=9, fontweight="bold")
+    ax.text(5.5, 5.3, "NEMA 23 motors (100–300 Ncm)", fontsize=8)
+    ax.text(5.5, 4.6, "provide enough torque to drive", fontsize=8)
+    ax.text(5.5, 3.9, "the Y-axis directly against gravity.", fontsize=8)
+    ax.text(5.5, 2.8, "Simpler build:", fontsize=8, fontweight="bold", color="#2E7D32")
+    ax.text(5.5, 2.2, "• No pulleys, cables, or weights", fontsize=8, color="#2E7D32")
+    ax.text(5.5, 1.6, "• No weight calibration needed", fontsize=8, color="#2E7D32")
+    ax.text(5.5, 0.6, "Note: Rail drops on power loss.", fontsize=8, style="italic", color="#C62828")
+    ax.text(5.5, 0.0, "Acceptable for pen plotter.", fontsize=8, style="italic", color="#C62828")
 
     plt.tight_layout()
-    path = os.path.join(IMGDIR, "counterweight.png")
+    path = os.path.join(IMGDIR, "direct_drive.png")
     fig.savefig(path, dpi=200, bbox_inches="tight")
     plt.close(fig)
     return path
@@ -388,7 +379,7 @@ def draw_electronics_diagram():
                 fontsize=fontsize, color=textcolor, fontweight="bold", zorder=4)
 
     # PSU
-    box(ax, 0.5, 4.0, 2.0, 1.5, "12V 10A\nPower\nSupply", "#37474F")
+    box(ax, 0.5, 4.0, 2.0, 1.5, "24V 15A\nPower\nSupply", "#37474F")
 
     # Arduino + CNC Shield (center)
     box(ax, 4.0, 3.5, 3.0, 2.5, "Arduino Uno\n+\nCNC Shield V3\n(GRBL)", "#1565C0", fontsize=8)
@@ -402,12 +393,12 @@ def draw_electronics_diagram():
     # Power line
     ax.annotate("", xy=(4.0, 4.75), xytext=(2.5, 4.75),
                 arrowprops=dict(arrowstyle="->", color="#C62828", lw=2))
-    ax.text(3.0, 5.1, "12V", fontsize=7, color="#C62828", fontweight="bold")
+    ax.text(3.0, 5.1, "24V", fontsize=7, color="#C62828", fontweight="bold")
 
     # Drivers
     driver_x = 8.5
     colors = ["#E53935", "#E53935", "#7B1FA2"]
-    labels = ["TMC2209\n(Y-Driver)", "TMC2209\n(A=Y Clone)", "TMC2209\n(X-Driver)"]
+    labels = ["TB6600\n(Y-Driver)", "TB6600\n(A=Y Clone)", "TB6600\n(X-Driver)"]
     for i, (col, lbl) in enumerate(zip(colors, labels)):
         y = 6.5 - i * 2.2
         box(ax, driver_x, y, 1.8, 1.2, lbl, col, fontsize=6)
@@ -680,7 +671,7 @@ def build_document():
     print("Generating diagrams...")
     img_overview = draw_system_overview()
     img_arches = draw_architecture_comparison()
-    img_cw = draw_counterweight_diagram()
+    img_cw = draw_direct_drive_diagram()
     img_pen = draw_pen_mechanism()
     img_elec = draw_electronics_diagram()
     img_phases = draw_assembly_phases()
@@ -752,7 +743,7 @@ def build_document():
         "8. Pen Lift Mechanism",
         "9. Controller & Firmware",
         "10. Rail & Frame Selection",
-        "11. Counterweight System",
+        "11. Direct-Drive Y-Axis (No Counterweights)",
         "12. Electronics & Wiring",
         "13. Software Pipeline",
         "14. Bill of Materials",
@@ -788,10 +779,10 @@ def build_document():
             ["Buffer Zone", "5 cm on all sides"],
             ["Usable Drawing Area", "170 cm × 110 cm"],
             ["Origin", "Top-left corner"],
-            ["Motion System", "Dual-Y Cartesian with counterweights"],
-            ["Motors", "3× NEMA 17 steppers + 1× SG90 servo"],
+            ["Motion System", "Dual-Y Cartesian (no counterweights)"],
+            ["Motors", "3× NEMA 23 steppers (no counterweights needed) + 1× SG90 servo"],
             ["Controller", "Arduino Uno + CNC Shield V3 + GRBL firmware"],
-            ["Drivers", "3× TMC2209"],
+            ["Drivers", "3× TB6600"],
             ["Resolution", "80 steps/mm (0.0125 mm per step)"],
             ["Pen Tip Width", "0.5–1.0 mm (40–80× larger than step size)"],
         ],
@@ -803,7 +794,7 @@ def build_document():
         ["Axis", "Function", "Mechanism"],
         [
             ["X", "Horizontal (left–right)", "Belt + motor on rail"],
-            ["Y", "Vertical (up–down)", "Dual motors + belts + counterweights"],
+            ["Y", "Vertical (up–down)", "Dual NEMA 23 motors + belts (direct drive)"],
             ["Z", "Pen up/down", "SG90 servo + compression spring"],
         ],
         col_widths=[2, 5, 8],
@@ -829,8 +820,8 @@ def build_document():
     doc.add_heading("Phase 1 — Black & White Sketching (Current)", level=2)
     for item in [
         "Single black pen (marker, felt-tip, or ballpoint)",
-        "Mechanical skeleton: frame, rails, motors, counterweights",
-        "Electronics: Arduino + CNC Shield + GRBL + TMC2209 drivers",
+        "Mechanical skeleton: frame, rails, NEMA 23 motors (no counterweights)",
+        "Electronics: Arduino + CNC Shield + GRBL + TB6600 drivers",
         "Software pipeline: image to edge detection to contours to G-Code",
         "Calibration: homing, steps/mm tuning, test square verification",
         "Goal: produce clean, recognizable line drawings on the board",
@@ -875,7 +866,7 @@ def build_document():
         "The diagram below shows the complete machine layout as seen from the front. "
         "Two Y-motors at the top corners move the horizontal X-rail up and down. "
         "A third motor on the X-rail moves the pen carriage left and right. "
-        "Counterweights behind the board balance the X-rail's weight."
+        "NEMA 23 motors drive the Y-axis directly against gravity (no counterweights needed)."
     )
     doc.add_picture(img_overview, width=Inches(5.5))
     last_paragraph = doc.paragraphs[-1]
@@ -936,13 +927,13 @@ def build_document():
     doc.add_heading("D: Dual-Y Cartesian — CHOSEN", level=2)
     doc.add_paragraph(
         "Two synchronized Y-motors (one per side) move the X-rail vertically. "
-        "A third motor drives the pen carriage horizontally. Counterweights balance gravity. "
+        "A third motor drives the pen carriage horizontally. NEMA 23 motors handle gravity directly. "
         "Used by: iDraw H (commercial, ±0.02mm precision), OpenBuilds ACRO, every large CNC router."
     )
     for reason in [
         "Anti-racking: both sides of the rail move simultaneously, keeping it perfectly level.",
         "Short belt runs (~260 cm each) — minimal stretch compared to CoreXY's 12m.",
-        "Counterweight-friendly: symmetric design enables easy balancing.",
+        "No counterweights needed: NEMA 23 motors provide sufficient torque against gravity.",
         "Pen-switch ready: rigid rail means precise return to coordinates for multi-color.",
         "GRBL natively supports dual-Y axis with the CNC Shield's A-axis clone jumper.",
         "Proven at scale by commercial and DIY machines worldwide."
@@ -975,7 +966,7 @@ def build_document():
     add_styled_table(doc,
         ["Drive Type", "Speed", "Stretch", "Self-Lock (Gravity Safe)", "Cost", "Verdict"],
         [
-            ["GT2 Timing Belt", "Fast (5000 mm/min)", "~0.2%", "No — needs counterweight", "$5–10 / 10m", "CHOSEN"],
+            ["GT2 Timing Belt", "Fast (5000 mm/min)", "~0.2%", "No — motor holding torque only", "$5–10 / 10m", "CHOSEN"],
             ["Lead Screw (T8)", "Slow (500 mm/min)", "~0", "Yes — self-locking", "$20–30 / 120cm", "Rejected (too slow)"],
             ["Ball Screw", "Fast", "~0", "No", "$100–300 / 120cm", "Rejected (too expensive)"],
             ["Cable / Fishing Line", "Medium", "High", "No", "$1", "Rejected (stretch)"],
@@ -986,7 +977,7 @@ def build_document():
     )
     doc.add_paragraph(
         "GT2 timing belt wins on speed, cost, and community support. "
-        "The self-locking disadvantage is solved by counterweights — when balanced, "
+        "The self-locking disadvantage is mitigated by NEMA 23 holding torque — "
         "the rail stays in place even with power off."
     )
 
@@ -998,14 +989,14 @@ def build_document():
         ["Motor", "Frame Size", "Torque", "Weight", "Current", "Voltage", "Cost", "Verdict"],
         [
             ["NEMA 14", "35mm", "10–20 Ncm", "~150g", "0.5–1A", "12V", "$5–8", "Too weak"],
-            ["NEMA 17", "42mm", "40–65 Ncm", "~280g", "1.2–2A", "12V", "$8–15", "CHOSEN"],
+            ["NEMA 23", "57mm", "100–300 Ncm", "~600-1000g", "2.0–4A", "24V", "$20–40", "CHOSEN"],
             ["NEMA 23", "57mm", "100–300 Ncm", "~600g", "2–4A", "24V", "$20–40", "Overkill"],
             ["Closed-Loop Servo", "Varies", "High", "~400g", "Varies", "24V+", "$50+", "Too expensive"],
         ],
         col_widths=[2.5, 1.5, 2, 1.5, 1.5, 1.2, 1.5, 2.5],
     )
     doc.add_paragraph(
-        "With counterweights eliminating gravity load, NEMA 17 (>45 Ncm) provides more than enough "
+        "NEMA 23 (>100 Ncm) provides enough torque to drive the Y-axis directly against gravity, "
         "torque to position the rail. NEMA 23 would add unnecessary weight to the carriage and require "
         "24V power and higher-current drivers."
     )
@@ -1021,12 +1012,12 @@ def build_document():
         [
             ["A4988", "2A (1A safe)", "1/16", "Very loud", "$1–2", "Rejected (noise)"],
             ["DRV8825", "2.2A (1.5A safe)", "1/32", "Loud", "$2–3", "Rejected (noise)"],
-            ["TMC2209", "2.8A RMS", "1/256", "Near silent", "$3–5", "CHOSEN"],
+            ["TB6600", "4.0A", "1/32", "Moderate", "$8–12", "CHOSEN"],
         ],
         col_widths=[2.5, 2.5, 2, 2.5, 2, 3],
     )
     doc.add_paragraph(
-        "TMC2209's StealthChop mode makes motor operation nearly silent — critical for a machine "
+        "TB6600 supports the higher current draw of NEMA 23 motors (up to 4A per phase) — required "
         "that may run 30+ minutes per drawing. The extra $1–2 per driver is a trivial cost. "
         "Drop-in compatible with CNC Shield V3 (same pinout as A4988)."
     )
@@ -1099,7 +1090,7 @@ def build_document():
     # ══════════════════════════════════════════════════════════
     # 10. COUNTERWEIGHT
     # ══════════════════════════════════════════════════════════
-    doc.add_heading("11. Counterweight System", level=1)
+    doc.add_heading("11. Direct-Drive Y-Axis (No Counterweights)", level=1)
     doc.add_picture(img_cw, width=Inches(4.5))
     last_paragraph = doc.paragraphs[-1]
     last_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -1108,11 +1099,11 @@ def build_document():
     steps = [
         "Fully assemble the X-rail: rail + carriage + X-motor + servo + pen holder + all brackets.",
         "Weigh the complete assembly on a kitchen scale.",
-        "Start with counterweight at ~95% of that mass (slightly under-balanced).",
-        "Hang counterweights behind the board via cables routed over top pulleys.",
+        "No counterweights needed — NEMA 23 motors handle gravity directly.",
+        "Verify motors hold X-rail position when powered (should not drift).",
         "The One-Finger Test: push the rail with one finger. It should move smoothly and stay exactly where you leave it.",
         "If the rail drifts down: add weight. If it drifts up: remove weight.",
-        "Once balanced, secure the counterweights so they cannot shift.",
+        "Note: X-rail will drop on power loss — acceptable for pen plotter.",
     ]
     for i, step in enumerate(steps, 1):
         doc.add_paragraph(f"{i}. {step}")
@@ -1205,13 +1196,13 @@ def build_document():
     add_styled_table(doc,
         ["Item", "Spec", "Qty", "Purpose"],
         [
-            ["NEMA 17 Stepper Motor", ">45 Ncm, 1.5–2A", "3", "X + Y-Left + Y-Right"],
+            ["NEMA 23 Stepper Motor", ">100 Ncm, 2.0–4A", "3", "X + Y-Left + Y-Right"],
             ["SG90 Micro Servo", "Standard", "1", "Pen lift (Z-axis)"],
-            ["Motor Mounting Bracket", "NEMA 17 L-bracket", "3", "Motor mounting"],
+            ["Motor Mounting Bracket", "NEMA 23 L-bracket (57mm)", "3", "Motor mounting"],
             ["Arduino Uno R3", "Original or clone", "1", "GRBL controller"],
             ["CNC Shield V3", "Fits Arduino Uno", "1", "Driver interface"],
-            ["TMC2209 Driver Module", "StepStick form factor", "3", "Motor drivers"],
-            ["12V 10A Power Supply", "Mean Well or equiv.", "1", "Main power"],
+            ["TB6600 Driver", "External, up to 4A", "3", "Motor drivers"],
+            ["24V 15A Power Supply", "Mean Well or equiv.", "1", "Main power"],
             ["Limit Switches", "NO microswitch, lever", "3", "Homing (X, Y, spare)"],
             ["Drag Chain", "10×10mm flexible", "2m", "Cable management"],
             ["USB-B Cable", "Standard Arduino", "1", "PC connection"],
@@ -1219,18 +1210,16 @@ def build_document():
         col_widths=[4, 3, 1, 5],
     )
 
-    doc.add_heading("Counterweight & Pen", level=2)
+    doc.add_heading("Pen Mechanism", level=2)
     add_styled_table(doc,
         ["Item", "Spec", "Qty", "Purpose"],
         [
-            ["Nylon Cord / Paracord", "3mm, rated >20kg", "5m", "Counterweight cables"],
-            ["Small Bearing Pulleys", "20–30mm diameter", "4", "Cable routing (top)"],
-            ["Counterweight Mass", "Steel / sand / water", "As needed", "Balance X-rail"],
             ["Compression Spring", "~10mm OD, ~20mm", "1", "Push pen toward board"],
             ["Pen Holder", "3D-printed or purchased", "1", "Holds marker / pen"],
         ],
         col_widths=[4, 3, 1.5, 4.5],
     )
+    doc.add_paragraph("Note: No counterweight system needed — NEMA 23 motors handle gravity directly.")
 
     doc.add_page_break()
 
@@ -1266,23 +1255,17 @@ def build_document():
             "Route X-axis belt and install belt tensioner.",
             "Optional: bolt mid-span aluminum stiffener to back of X-rail.",
         ]),
-        ("Phase 4: Counterweights (Day 6–7)", [
-            "Weigh the entire X-rail assembly.",
-            "Install pulleys at the top of the frame behind the board.",
-            "Attach cord to both ends of the X-rail, route over pulleys, hang weights.",
-            "Perform the One-Finger Test (see Section 10).",
-        ]),
-        ("Phase 5: Electronics (Day 7–8)", [
+        ("Phase 4: Electronics (Day 6–7)", [
             "Flash GRBL firmware onto the Arduino Uno.",
-            "Plug CNC Shield onto Arduino, insert TMC2209 drivers.",
+            "Plug CNC Shield onto Arduino, wire TB6600 external drivers.",
             "Set A-axis jumper on CNC Shield to clone Y.",
             "Wire motors: X→X slot, Y-Left→Y slot, Y-Right→A slot.",
             "REVERSE ONE Y-MOTOR'S COIL (swap A+ and A− on one motor).",
             "Wire servo to SpnEn pin.",
             "Wire and mount limit switches (X-min, Y-min).",
-            "Connect 12V 10A PSU.",
+            "Connect 24V 15A PSU to TB6600 drivers.",
         ]),
-        ("Phase 6: Calibration (Day 9–10)", [
+        ("Phase 5: Calibration (Day 8–9)", [
             "Connect to GRBL via Universal Gcode Sender.",
             "Configure GRBL $ parameters (see Section 15).",
             "Home the machine ($H) — should move to top-left and stop at switches.",
@@ -1355,7 +1338,7 @@ def build_document():
     add_styled_table(doc,
         ["Failure", "Cause", "Prevention"],
         [
-            ["Rail crashes on power loss", "No counterweight / belt breaks", "Counterweights hold rail in place"],
+            ["Rail drops on power loss", "Motors lose holding torque", "Acceptable for pen plotter — keep motors enabled during jobs"],
             ["Skipped steps (drawing shifts)", "Accel too high, PSU weak, belt loose", "Tune $120/$121, use 10A PSU, tension belts"],
             ["Y-axis jams on startup", "Y-motors fighting each other", "Reverse one motor's coil wiring"],
             ["Drawing is skewed (rhombus)", "Frame not square", "Measure diagonals during assembly"],
@@ -1397,8 +1380,8 @@ def build_document():
         ("CoreXY Belt Tensioning", "drmrehorst.blogspot.com/2018/08/corexy-mechanism-layout-and-belt.html"),
         ("Belts vs Leadscrews in CNC", "blanch.org/belts-vs-screws-in-cnc-design"),
         ("V-Slot Deflection Calculator", "builds.openbuilds.com/threads/how-to-calculate-v-slot-deflection.4881"),
-        ("NEMA 17 vs NEMA 23", "sss-motors.com/nema-17-vs-nema-23-stepper-motor"),
-        ("TMC2209 vs TMC2208", "xecor.com/blog/tmc2208-vs-tmc2209"),
+        ("NEMA 23 vs NEMA 23", "sss-motors.com/nema-17-vs-nema-23-stepper-motor"),
+        ("TB6600 vs TMC2208", "xecor.com/blog/tmc2208-vs-tmc2209"),
         ("Polargraph Mathematics", "nexp.pt/vbot.html"),
         ("FluidNC (Modern GRBL Replacement)", "wiki.fluidnc.com/en/config/kinematics"),
     ]

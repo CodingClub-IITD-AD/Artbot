@@ -7,8 +7,8 @@ ArtBot is a large-scale robotic drawing machine that converts digital images int
 - **Board**: 180cm x 120cm, mounted vertically (perpendicular to ground)
 - **Buffer**: 5cm on all sides → usable drawing area: **170cm x 110cm**
 - **Origin**: top-left corner
-- **Motion**: Dual-Y Cartesian with counterweights, belt-driven
-- **Motors**: 3x NEMA 17 steppers (2 for Y, 1 for X) + 1x SG90 servo (pen Z)
+- **Motion**: Dual-Y Cartesian, belt-driven (no counterweights — motors have enough torque)
+- **Motors**: 2x NEMA 23 steppers (Y-axis) + 1x NEMA 23 stepper (X-axis) + 1x SG90 servo (pen Z)
 - **Controller**: Arduino Uno + CNC Shield V3 + TMC2209 drivers
 - **Firmware**: GRBL (G-Code interpreter, real-time motor control)
 - **Resolution**: 80 steps/mm (200 steps x 16 microsteps / 20-tooth x 2mm GT2 belt)
@@ -17,7 +17,7 @@ ArtBot is a large-scale robotic drawing machine that converts digital images int
 - **Y-axis**: Two vertical rails (left/right), dual synchronized motors at top corners
 - **X-axis**: Single 180cm horizontal rail moves up/down on Y rails; pen carriage rides along it
 - **Z-axis**: Spring-loaded pen holder with SG90 servo (spring pushes pen toward board, servo retracts)
-- **Counterweights**: Cables + pulleys + weights balance the X-rail so motors only control position, not lift
+- **No counterweights**: NEMA 23 motors provide sufficient torque to drive the Y-axis against gravity directly
 - **Critical**: Dual-Y motors face opposite directions — one motor's coil wiring MUST be reversed
 
 ## Software Pipeline
@@ -67,7 +67,7 @@ scripts/
 
 ## Hardware Context (for software decisions)
 - Board is VERTICAL — gravity pulls pen away from surface (spring compensates)
-- Counterweighted Y-axis means motors control position, not force
+- NEMA 23 motors drive Y-axis directly against gravity (no counterweights)
 - 80 steps/mm resolution means pen tip width (0.5-1.0mm) >> step size (0.0125mm)
 - GRBL look-ahead smooths segmented curves at the firmware level
 - Long 180cm X-rail can vibrate — software should avoid extremely rapid direction changes

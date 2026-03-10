@@ -135,7 +135,7 @@ This is the single most important choice. It determines everything else.
       Idler                                    Idler
 ```
 
-**How it works**: Two synchronized motors (one on each side) move the horizontal X-rail up and down. A third motor drives the pen carriage left and right along that rail. Counterweights balance the rail's weight.
+**How it works**: Two synchronized motors (one on each side) move the horizontal X-rail up and down. A third motor drives the pen carriage left and right along that rail. NEMA 23 motors provide enough torque to drive the rail directly against gravity without counterweights.
 
 **Real-world examples**:
 - [OpenBuilds ACRO System](https://builds.openbuilds.com/tags/acro/) — community builds using this exact pattern
@@ -148,7 +148,7 @@ This is the single most important choice. It determines everything else.
 - **Anti-racking**: Both sides of the rail move simultaneously → rail stays perfectly level
 - **Proven at scale**: This is how every serious large-format CNC machine works
 - **Simple control**: Arduino + CNC Shield's A-axis jumper clones Y to both motors. Standard GRBL handles it natively with `#define ENABLE_DUAL_AXIS`.
-- **Counterweight-friendly**: Symmetric design means you can balance the rail from both sides
+- **No counterweights needed**: NEMA 23 motors have enough torque to drive the rail directly against gravity
 - **Pen switching ready**: Rigid rail means the pen can return to exact coordinates → multi-color possible in the future
 - **Short belt runs**: Each belt is only ~260cm (up one side, down the other). Much less stretch than CoreXY's 12m.
 - **Repairable**: If one motor/belt/driver fails, you replace that one component. No complex system interdependencies.
@@ -157,7 +157,7 @@ This is the single most important choice. It determines everything else.
 - More expensive than polargraph (3 motors vs 2, more rail)
 - Dual Y motors must be wired correctly (one coil reversed) or they'll fight each other
 - Heavier frame than polargraph
-- Counterweight system adds complexity
+- X-rail will drop on power loss (no counterweight safety net)
 
 **VERDICT: ACCEPTED**
 - Best balance of precision, scalability, simplicity, and future-proofing
@@ -193,7 +193,7 @@ This is the single most important choice. It determines everything else.
 | Stretch | ~0.2% under normal load |
 | Speed | Fast (3000–5000 mm/min easy) |
 | Noise | Moderate |
-| Self-locking on power loss | NO — rail will fall without counterweight |
+| Self-locking on power loss | NO — rail will drop when motors are unpowered |
 | Cost | ~$5–10 for 10m roll |
 
 **Why chosen**: Fast, cheap, widely available, well-documented. The stretch is manageable at our belt lengths (~260cm per Y-axis run). Every 3D printer uses GT2.
@@ -213,7 +213,7 @@ This is the single most important choice. It determines everything else.
 - **Speed**: At 500mm/min on a 1.8m machine, moving corner to corner takes ~3.6 minutes. A complex drawing would take hours.
 - **Weight**: Two 120cm steel lead screws add significant mass
 - **Whip**: Long lead screws (>60cm) can vibrate/whip at higher RPM. You'd need a supported screw, which is expensive.
-- The self-locking advantage is real but solved by counterweights instead.
+- The self-locking advantage is nice but lead screw speed is too slow for our machine size.
 
 ### Ball Screw
 
@@ -236,13 +236,13 @@ Used by polargraphs and Maslow CNC. Already covered in the polargraph section.
 
 **Why rejected**: Better than fishing line (doesn't stretch) but the chain links introduce micro-backlash. Chains also jump teeth under high acceleration. Good for polargraphs, wrong for Cartesian.
 
-**VERDICT**: GT2 timing belt wins on speed, cost, and community support. Counterweights solve the self-locking problem.
+**VERDICT**: GT2 timing belt wins on speed, cost, and community support. NEMA 23 holding torque keeps the rail in position during operation; rail drop on power loss is acceptable for a pen plotter.
 
 ---
 
 ## 3. Motor Selection
 
-### NEMA 17 (Our Choice)
+### NEMA 17
 
 | Property | Value |
 |----------|-------|
@@ -254,14 +254,12 @@ Used by polargraphs and Maslow CNC. Already covered in the polargraph section.
 | Step angle | 1.8° (200 steps/rev) |
 | Cost | ~$8–15 each |
 
-**Why chosen**:
-- With counterweights, our motors don't need to LIFT the rail — they only POSITION it
-- A counterweighted 3kg rail presents essentially zero static load to the motors
-- 45+ Ncm is plenty for accelerating a balanced mass
-- Compatible with CNC Shield V3, TMC2209, and all standard 3D printer hardware
-- Massive parts ecosystem
+**Why rejected**:
+- Insufficient torque to drive the Y-axis against gravity without counterweights
+- Would require a counterweight system (pulleys, cables, weight calibration) adding complexity
+- Compatible with cheaper drivers (TMC2209) but the counterweight trade-off isn't worth it
 
-### NEMA 23
+### NEMA 23 (Our Choice)
 
 | Property | Value |
 |----------|-------|
@@ -270,13 +268,15 @@ Used by polargraphs and Maslow CNC. Already covered in the polargraph section.
 | Weight | ~600-1000g |
 | Current | 2.0–4.0A per phase |
 | Voltage | 24V typical |
+| Step angle | 1.8° (200 steps/rev) |
 | Cost | ~$20–40 each |
 
-**Why rejected**:
-- **Heavier**: Adding 600g+ motors to the carriage (X motor rides on the rail) increases the load that the Y-axis must carry — self-defeating
-- **Higher power**: Requires 24V PSU and higher-current drivers. The CNC Shield V3 + TMC2209 max out around 2A per phase, which is fine for NEMA 17 but insufficient for most NEMA 23s
-- **Overkill**: With counterweights neutralizing gravity, the motors only fight inertia and friction. NEMA 17 at 45Ncm is more than enough.
-- Only needed if you skip counterweights (not recommended) or want very high acceleration
+**Why chosen**:
+- **Eliminates counterweights**: Enough torque to drive the Y-axis directly against gravity, vastly simplifying the mechanical build
+- **Simpler assembly**: No pulleys, cables, or weight calibration needed
+- **Reliable holding**: Holding torque keeps X-rail in position during drawing
+- Requires TB6600 drivers (TMC2209 insufficient) and 24V PSU, but the mechanical simplification is worth the electronics cost
+- The added weight of NEMA 23 on the X-rail (~600g for X motor) is acceptable given the Y motors' torque
 
 ### NEMA 14
 
@@ -291,24 +291,36 @@ Used by polargraphs and Maslow CNC. Already covered in the polargraph section.
 
 **Why rejected**: Expensive ($50+ each), require dedicated controllers, overkill for this application. Open-loop steppers are fine when belt tension is correct and acceleration is tuned conservatively. Closed-loop steppers (like NEMA 17 with encoder) are a possible future upgrade if we see missed steps.
 
-**VERDICT**: NEMA 17 (>45Ncm) is the sweet spot. Counterweights eliminate the need for brute-force torque.
+**VERDICT**: NEMA 23. The extra torque eliminates counterweights entirely, making the build much simpler.
 
 ---
 
 ## 4. Stepper Drivers
 
-### TMC2209 (Our Choice)
+### TMC2209
 
 | Property | Value |
 |----------|-------|
-| Max current | 2.8A RMS (far more than NEMA 17 needs) |
+| Max current | 2.8A RMS |
 | Microstepping | Up to 1/256 (we use 1/16) |
 | Noise | Near-silent (StealthChop mode) |
 | Stall detection | Yes (sensorless homing possible) |
 | Interface | Step/Dir (drop-in for CNC Shield) |
 | Cost | ~$3–5 each |
 
-**Why chosen**: Silent operation, smooth motion, high current headroom, drop-in compatible with CNC Shield V3. The stall detection feature means we could potentially skip limit switches (sensorless homing), though physical switches are more reliable.
+**Why rejected**: Max current of ~2A RMS is insufficient for most NEMA 23 motors which need 2.5-4A per phase. Would work with NEMA 17 but we chose NEMA 23 to eliminate counterweights.
+
+### TB6600 (Our Choice)
+
+| Property | Value |
+|----------|-------|
+| Max current | 4.0A per phase |
+| Microstepping | Up to 1/32 |
+| Noise | Moderate |
+| Interface | Step/Dir (external driver, wired to CNC Shield) |
+| Cost | ~$8–12 each |
+
+**Why chosen**: Supports the higher current draw of NEMA 23 motors. External form factor (not StepStick) but still controlled via Step/Dir signals from the CNC Shield. Widely used in CNC router builds with NEMA 23.
 
 ### A4988
 
@@ -332,7 +344,7 @@ Used by polargraphs and Maslow CNC. Already covered in the polargraph section.
 
 **Why rejected**: Still noisy. The 1/32 microstepping sounds appealing but provides negligible real-world benefit over 1/16 for a pen plotter (the pen tip is 500x larger than the step resolution at 1/16). TMC2209's StealthChop is worth the extra $1–2 per driver.
 
-**VERDICT**: TMC2209. The silence alone justifies the minor cost increase. Drop-in compatible.
+**VERDICT**: TB6600. Required for NEMA 23 current draw. Less silent than TMC2209 but necessary trade-off for eliminating counterweights.
 
 ---
 
@@ -444,14 +456,14 @@ The vertical rails (120cm) carry much less load (just the wheels rolling on them
 |-----------|--------|-----|
 | **Architecture** | Dual-Y Cartesian | Anti-racking, precision, pen-switch ready |
 | **Drive (X & Y)** | GT2 Timing Belt + 20T Pulley | Fast, cheap, adequate accuracy at our belt lengths |
-| **Y-Axis** | Dual motors, counterweighted | Eliminates gravity, enables NEMA 17 |
-| **Motors** | 3× NEMA 17 (>45Ncm) | Light, cheap, sufficient with counterweights |
-| **Drivers** | 3× TMC2209 | Silent, smooth, drop-in compatible |
+| **Y-Axis** | Dual motors, no counterweights | NEMA 23 torque handles gravity directly |
+| **Motors** | 3× NEMA 23 (>100Ncm) | Enough torque to skip counterweights |
+| **Drivers** | 3× TB6600 | Supports NEMA 23 current (up to 4A) |
 | **Pen Lift** | SG90 Servo + Spring | 9g, $1, binary pen up/down |
 | **Controller** | Arduino Uno + CNC Shield V3 + GRBL | Real-time, proven, native dual-Y support |
 | **X-Rail** | 2040 V-Slot + stiffener | Best rigidity-to-weight ratio at 180cm |
 | **Y-Rails / Frame** | 2020 V-Slot | Sufficient for supported spans |
-| **PSU** | 12V 10A (Mean Well or equiv) | Headroom for 3 motors + servo |
+| **PSU** | 24V 15A (Mean Well or equiv) | Headroom for 3 NEMA 23 motors + servo |
 | **Homing** | 3× Microswitch (NO) | Reliable, cheap, GRBL-native |
 
 ---

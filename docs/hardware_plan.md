@@ -8,13 +8,14 @@
         │                                                             │
   Motor ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━● Motor
   Y-Left│  ↑ Pulley                                    Pulley ↑  │Y-Right
-        │  │                                                  │  │
+ NEMA23 │  │                                                  │  │ NEMA23
         │  │  Belt (vertical)                   Belt (vertical)│  │
         │  │                                                  │  │
         │  │    ┌──────────────────────────────────────┐      │  │
         │  │    │         X-RAIL (180cm 2040)           │      │  │
         │  │    │   ◄── Pen Carriage ──►               │      │  │
         │  │    │   [Motor X] [Servo Z] [Pen]          │      │  │
+        │  │    │   (NEMA 23)                          │      │  │
         │  │    └──────────────────────────────────────┘      │  │
         │  │                                                  │  │
         │  │  ← 5cm buffer everywhere →                       │  │
@@ -22,9 +23,7 @@
         │  ↓                                          ↓       │  │
         │  Idler                                    Idler     │  │
         └─────────────────────────────────────────────────────────┘
-               ↑                                      ↑
-          Counterweight                          Counterweight
-          (behind board)                         (behind board)
+        (No counterweights — NEMA 23 motors have sufficient torque)
 ```
 
 ---
@@ -68,9 +67,9 @@
 
 | Item | Spec | Qty | Purpose |
 |------|------|-----|---------|
-| NEMA 17 Stepper Motor | >45 Ncm (63 oz-in), 1.5A–2A per phase | 3 | 2x Y-axis, 1x X-axis |
+| NEMA 23 Stepper Motor | >100 Ncm, 2.0–3.0A per phase | 3 | 2x Y-axis, 1x X-axis (enough torque to skip counterweights) |
 | SG90 Micro Servo | Standard | 1 | Z-axis pen up/down |
-| NEMA 17 Motor Mounting Bracket | L-shaped, steel or aluminum | 3 | Bolting motors to extrusions |
+| NEMA 23 Motor Mounting Bracket | L-shaped, steel or aluminum | 3 | Bolting motors to extrusions |
 
 **Motor positioning**:
 - **Y-Left Motor**: Mounted at the TOP-LEFT corner, shaft pointing forward, pulley faces the board
@@ -91,47 +90,24 @@ Test: power up, send a small Y move. If the rail moves smoothly, you're good. If
 |------|------|-----|---------|
 | Arduino Uno R3 | Original or clone | 1 | GRBL controller |
 | CNC Shield V3 | Fits Arduino Uno | 1 | Motor driver interface |
-| TMC2209 Stepper Driver Module | StepStick form factor | 3 | Drives the 3 NEMA 17s |
-| 12V 10A Power Supply | Mean Well or equivalent, DC barrel or screw terminal | 1 | Powers motors + Arduino |
+| TB6600 Stepper Driver | External, supports up to 4A | 3 | Drives the 3 NEMA 23s (TMC2209 insufficient for NEMA 23 current) |
+| 24V 15A Power Supply | Mean Well or equivalent, screw terminal | 1 | Powers motors + Arduino (NEMA 23 needs 24V) |
 | Limit Switches (microswitch) | Normally-Open (NO), lever type | 3 | Homing: X-min, Y-min, (optional Z) |
 | Wires / Dupont Jumpers | 22 AWG, assorted | 1 pack | General wiring |
 | Drag Chain | 10x10mm or 10x15mm, flexible | 2m | Cable management for X-carriage wires |
 | USB-B Cable | Standard Arduino | 1 | Connect Arduino to PC/Pi |
 
 **Power supply sizing**:
-- Each NEMA 17 at peak: ~2A per phase × 12V = 24W
-- 3 motors simultaneous: ~72W peak
-- 12V × 10A = 120W → gives ~40% headroom for spikes
-- A 5A PSU WILL brown-out during fast diagonal moves — get 10A minimum
+- Each NEMA 23 at peak: ~3A per phase × 24V = 72W
+- 3 motors simultaneous: ~216W peak
+- 24V × 15A = 360W → gives ~40% headroom for spikes
+- NEMA 23 motors perform significantly better at 24V vs 12V (higher torque at speed)
 
 ### Counterweight System
 
-| Item | Spec | Qty | Purpose |
-|------|------|-----|---------|
-| Nylon Cord or Paracord | 3mm, rated >20kg | 5m | Connect X-rail to counterweights |
-| Small Pulleys | Bearing type, 20-30mm diameter | 4 | 2 top-left, 2 top-right (route cable over top of frame) |
-| Counterweight mass | Steel plates, sand bags, or water bottles | As needed | Must equal X-rail assembly weight |
+**NOT NEEDED** — NEMA 23 motors provide sufficient holding torque (~100-300 Ncm) to support the X-rail assembly against gravity without counterweights. This simplifies the build significantly (no pulleys, cables, or weight calibration needed). The motors will hold position even when idle via their holding torque, and GRBL's motor-enable keeps coils energized during operation.
 
-**How to determine counterweight mass**:
-1. Assemble the X-rail completely: rail + carriage + X-motor + servo + pen holder + brackets + belt clamps
-2. Weigh it on a kitchen/bathroom scale
-3. Your counterweight should be ~95-100% of that weight
-4. Start at 95% (slightly light) so the rail gently settles down rather than floating up
-
-**Pulley routing** (per side):
-```
-  Motor [Y]──Pulley at top─── Belt goes DOWN to X-rail bracket
-                                        │
-  Behind board:  X-rail bracket ───Cord──┤
-                                         │
-                                    ┌────┴────┐
-                                    │Pulley at│
-                                    │  top    │
-                                    └────┬────┘
-                                         │
-                                    Counterweight
-                                    (hangs behind board)
-```
+**Note on power loss**: Without counterweights, the X-rail WILL drop if power is cut or motors are disabled. This is acceptable for a pen plotter (no damage risk), but be aware during testing.
 
 ### Pen Mechanism
 
@@ -190,15 +166,7 @@ Test: power up, send a small Y move. If the rail moves smoothly, you're good. If
 7. **Install belt tensioner** on the X-axis — this is the longest belt run and WILL sag without tensioning
 8. **(Optional) Bolt mid-span stiffener** to the back of the 2040 rail
 
-### Phase 4: Counterweights (Day 6-7)
-
-1. **Weigh the entire X-rail assembly** (with motor, carriage, servo, everything mounted)
-2. **Install pulleys at the top of the frame** — 2 per side, behind the board
-3. **Attach cord** to both ends of the X-rail, route over pulleys, hang weights
-4. **The One-Finger Test**: Push the X-rail with ONE finger. It should move easily and STAY where you leave it. If it drifts down, add weight. If it drifts up, remove weight.
-5. **Lock in the counterweight** — once balanced, secure the weights so they can't shift
-
-### Phase 5: Electronics (Day 7-8)
+### Phase 4: Electronics (Day 6-7)
 
 1. **Flash GRBL onto the Arduino** (use Arduino IDE, flash grbl firmware hex)
 2. **Plug CNC Shield onto Arduino**
@@ -221,7 +189,7 @@ Test: power up, send a small Y move. If the rail moves smoothly, you're good. If
 8. **Connect 12V PSU** to the CNC Shield power input
 9. **Connect Arduino via USB** to your laptop
 
-### Phase 6: Calibration & First Draw (Day 9-10)
+### Phase 5: Calibration & First Draw (Day 8-9)
 
 1. **Connect to GRBL** via Universal Gcode Sender (UGS) or CNCjs
 2. **Configure GRBL parameters**:
@@ -262,7 +230,7 @@ Test: power up, send a small Y move. If the rail moves smoothly, you're good. If
 
 ```
                     ┌──────────────┐
-   12V 10A PSU ────►│  CNC Shield  │
+   24V 15A PSU ────►│  CNC Shield  │
                     │    V3        │
                     │  ┌────────┐  │
                     │  │Arduino │  │◄──── USB to PC
@@ -270,14 +238,14 @@ Test: power up, send a small Y move. If the rail moves smoothly, you're good. If
                     │  │ (GRBL) │  │
                     │  └────────┘  │
                     │              │
-                    │  X-Driver ───┼──── X Motor (NEMA 17)
-                    │  (TMC2209)   │
+                    │  X-Driver ───┼──── X Motor (NEMA 23)
+                    │  (TB6600)    │
                     │              │
-                    │  Y-Driver ───┼──── Y-Left Motor (NEMA 17)
-                    │  (TMC2209)   │
+                    │  Y-Driver ───┼──── Y-Left Motor (NEMA 23)
+                    │  (TB6600)    │
                     │              │
-                    │  A-Driver ───┼──── Y-Right Motor (NEMA 17)
-                    │  (TMC2209)   │     ⚠ ONE COIL PAIR REVERSED
+                    │  A-Driver ───┼──── Y-Right Motor (NEMA 23)
+                    │  (TB6600)    │     ⚠ ONE COIL PAIR REVERSED
                     │  [Y clone]   │
                     │              │
                     │  SpnEn ──────┼──── SG90 Servo (Pen Z)
@@ -293,8 +261,8 @@ Test: power up, send a small Y move. If the rail moves smoothly, you're good. If
 
 | Failure | Cause | Prevention |
 |---------|-------|------------|
-| Rail crashes down on power loss | No counterweight or belt breaks | Counterweights hold rail in place even with no power |
-| Skipped steps (drawing shifts mid-job) | Acceleration too high, PSU too weak, belt too loose | Tune $120/$121 conservatively, use 10A PSU, tension belts |
+| Rail drops on power loss | Motors lose holding torque when disabled/unpowered | Acceptable for pen plotter — no damage risk. Keep GRBL motor-enable active during jobs |
+| Skipped steps (drawing shifts mid-job) | Acceleration too high, PSU too weak, belt too loose | Tune $120/$121 conservatively, use 24V 15A PSU, tension belts |
 | Y-axis jams on startup | Both Y-motors fighting each other | Reverse one motor's coil wiring |
 | Drawing is skewed/rhombus | Frame not square | Measure diagonals during assembly |
 | Pen doesn't touch board consistently | Spring too weak, or servo range wrong | Tune spring compression, calibrate servo angle |
@@ -311,6 +279,6 @@ Buy in this order so you can start building while waiting for later shipments:
 
 1. **First** (frame + rails): V-Slot extrusions, brackets, T-nuts, bolts
 2. **Second** (motion): V-wheels, gantry plates, eccentric spacers, GT2 belt, pulleys, tensioners
-3. **Third** (motors): 3x NEMA 17 + mounting brackets + SG90 servo
-4. **Fourth** (electronics): Arduino Uno, CNC Shield V3, 3x TMC2209, 12V 10A PSU, limit switches, wires, drag chain
+3. **Third** (motors): 3x NEMA 23 + mounting brackets + SG90 servo
+4. **Fourth** (electronics): Arduino Uno, CNC Shield V3, 3x TB6600 drivers, 24V 15A PSU, limit switches, wires, drag chain
 5. **Last** (pen): Spring, pen holder, 3D-print the carriage mount (or iterate on cardboard prototype first)
