@@ -9,7 +9,7 @@ ArtBot is a large-scale robotic drawing machine that converts digital images int
 - **Origin**: top-left corner
 - **Motion**: Dual-Y Cartesian, belt-driven (no counterweights — motors have enough torque)
 - **Motors**: 2x NEMA 23 steppers (Y-axis) + 1x NEMA 23 stepper (X-axis) + 1x SG90 servo (pen Z)
-- **Controller**: Arduino Uno + CNC Shield V3 + TMC2209 drivers
+- **Controller**: Arduino Uno + CNC Shield V3 + TB6600 drivers
 - **Firmware**: GRBL (G-Code interpreter, real-time motor control)
 - **Resolution**: 80 steps/mm (200 steps x 16 microsteps / 20-tooth x 2mm GT2 belt)
 
