@@ -22,3 +22,6 @@ Thumbs.db
 
 # Jupyter
 .ipynb_checkpoints/
+
+# CAD build artifacts (regenerate: python cad/artbot_cad.py)
+cad/out/artbot_assembly.stl

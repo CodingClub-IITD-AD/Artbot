@@ -1,0 +1,1527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ArtBot Build Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="three.min.js"></script>
+<script>
+  // If the local copy is missing, fall back to the CDN synchronously.
+  if (typeof THREE === "undefined") {
+    document.write('<scr' + 'ipt src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/scr' + 'ipt>');
+  }
+</script>
+<style>
+  :root{
+    --void:#0B0E10; --deep:#12171A;
+    --panel:rgba(15,20,23,.88); --panel-solid:#0F1417;
+    --line:#283238; --line-soft:#1A2226;
+    --txt:#DEE5E8; --dim:#8B979E; --faint:#5A666D;
+    --signal:#5AC8D8; --run:#E8B23C;
+    --k:#4A5359; --r:#D8392B; --b:#3B72D8; --g:#22A05F;
+    --sans:"Barlow",system-ui,sans-serif;
+    --cond:"Barlow Condensed","Barlow",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  }
+  [hidden]{display:none !important}
+  img{max-width:100%}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--void);color:var(--txt);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  canvas{display:block;position:fixed;inset:0}
+
+  .lbl{font-family:var(--cond);font-weight:600;text-transform:uppercase;letter-spacing:.14em;
+       font-size:11px;color:var(--faint)}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  /* ---------- panels ---------- */
+  .panel{position:fixed;background:var(--panel);border:1px solid var(--line);
+         backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+
+  #rail{top:16px;left:16px;width:294px;max-height:calc(100vh - 132px);overflow-y:auto;
+        display:flex;flex-direction:column}
+  #rail::-webkit-scrollbar{width:8px}
+  #rail::-webkit-scrollbar-thumb{background:var(--line);border:2px solid var(--panel-solid)}
+
+  .head{padding:16px 18px 14px;border-bottom:1px solid var(--line)}
+  .head h1{margin:0;font-family:var(--cond);font-weight:600;font-size:26px;letter-spacing:.02em;
+           line-height:1;text-wrap:balance}
+  .head p{margin:7px 0 0;font-size:12.5px;line-height:1.5;color:var(--dim)}
+  .tag{display:inline-block;margin-top:11px;padding:3px 8px;border:1px solid var(--line);
+       font-family:var(--cond);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+       color:var(--signal)}
+
+  .sec{padding:15px 18px;border-bottom:1px solid var(--line-soft)}
+  .sec:last-child{border-bottom:none}
+  .sec > .lbl{display:block;margin-bottom:11px}
+
+  .spec{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12.5px}
+  .spec dt{color:var(--faint)}
+  .spec dd{margin:0;text-align:right;font-family:var(--mono);font-size:11.5px;color:var(--txt)}
+
+  .sw{display:flex;align-items:center;gap:10px;padding:6px 0;cursor:pointer;font-size:13px;
+      color:var(--dim);user-select:none;background:none;border:none;width:100%;text-align:left;
+      font-family:var(--sans)}
+  .sw:hover{color:var(--txt)}
+  .sw:focus-visible{outline:1px solid var(--signal);outline-offset:3px}
+  .box{width:13px;height:13px;border:1px solid var(--line);flex:none;position:relative}
+  .sw[aria-pressed="true"] .box{border-color:var(--signal);background:var(--signal)}
+  .sw[aria-pressed="true"] .box::after{content:"";position:absolute;inset:3px;background:var(--panel-solid)}
+  .sw[aria-pressed="true"]{color:var(--txt)}
+
+  .prow{display:flex;justify-content:space-between;gap:10px;padding:5px 7px;cursor:pointer;
+        font-size:12.5px;color:var(--dim);border-left:2px solid transparent;align-items:baseline}
+  .prow:hover{color:var(--txt);background:rgba(90,200,216,.06)}
+  .prow.on{color:var(--txt);border-left-color:var(--signal);background:rgba(90,200,216,.10)}
+  .prow i{font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--faint);
+          white-space:nowrap}
+  .prow.on i{color:var(--signal)}
+  #pinfo h3{margin:0 0 3px;font-family:var(--cond);font-size:17px;font-weight:600;
+            letter-spacing:.03em;color:var(--signal);text-transform:uppercase}
+  #pinfo .k{font-family:var(--cond);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+            color:var(--faint);margin-top:10px}
+  #pinfo .v{font-size:12.5px;line-height:1.5;color:var(--txt);margin-top:2px}
+  #pinfo .v.mono{font-family:var(--mono);font-size:11.5px}
+  #pinfo .v.dim{color:var(--dim)}
+  .eng{display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-size:12.5px;
+       align-items:baseline}
+  .eng dt{color:var(--faint)}
+  .eng dd{margin:0;text-align:right;font-family:var(--mono);font-size:11.5px}
+  .ok{color:#5FCB8B} .warn2{color:var(--run)}
+  .rng{width:100%;accent-color:var(--signal);margin:2px 0 4px}
+  .rngrow{display:flex;justify-content:space-between;font-family:var(--cond);font-size:10.5px;
+          letter-spacing:.11em;text-transform:uppercase;color:var(--faint)}
+  .rngrow b{font-family:var(--mono);font-size:11px;color:var(--signal);font-weight:400;
+            letter-spacing:0}
+  .part{display:flex;align-items:baseline;gap:9px;padding:4px 0;font-size:12.5px;color:var(--dim)}
+  .views{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+  .views button{padding:8px 6px;border:1px solid var(--line);background:transparent;color:var(--dim);
+                font-family:var(--cond);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+                cursor:pointer}
+  .views button:hover{color:var(--txt);border-color:var(--signal)}
+  .views button:focus-visible{outline:1px solid var(--signal);outline-offset:2px}
+  .chip{width:9px;height:9px;flex:none;transform:translateY(-1px)}
+  .part b{font-weight:500;color:var(--txt)}
+
+  .note{font-size:12px;line-height:1.55;color:var(--dim);margin:0}
+  .note + .note{margin-top:9px}
+  .warn{border-left:2px solid var(--run);padding-left:11px}
+  .warn .lbl{color:var(--run);display:block;margin-bottom:5px}
+
+  /* ---------- live readout ---------- */
+  #hud{top:16px;right:16px;width:210px;padding:14px 16px}
+  .row{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0}
+  .row span:first-child{font-family:var(--cond);font-size:11px;letter-spacing:.12em;
+                        text-transform:uppercase;color:var(--faint)}
+  .row span:last-child{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+  .mv{margin-top:9px;padding-top:9px;border-top:1px solid var(--line-soft);
+      display:flex;flex-direction:column;gap:3px}
+  #mvn{font-family:var(--mono);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+  #mvd{font-family:var(--cond);font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;
+       color:var(--txt)}
+  .state{margin-top:11px;padding-top:11px;border-top:1px solid var(--line-soft);
+         display:flex;align-items:center;gap:8px;font-family:var(--cond);font-size:12px;
+         letter-spacing:.1em;text-transform:uppercase}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
+  .dot.on{background:var(--run);box-shadow:0 0 9px var(--run)}
+  .dot.swap{background:var(--signal);box-shadow:0 0 9px var(--signal)}
+
+  /* ---------- transport ---------- */
+  #bar{left:16px;right:16px;bottom:16px;height:64px;display:flex;align-items:center;
+       gap:16px;padding:0 16px}
+  .btn{width:38px;height:38px;flex:none;border:1px solid var(--line);background:transparent;
+       color:var(--txt);cursor:pointer;display:grid;place-items:center;padding:0}
+  .btn:hover{border-color:var(--signal);color:var(--signal)}
+  .btn:focus-visible{outline:1px solid var(--signal);outline-offset:2px}
+  .btn svg{width:14px;height:14px;fill:currentColor}
+
+  #track{flex:1;height:34px;position:relative;cursor:pointer;min-width:60px}
+  #track::before{content:"";position:absolute;left:0;right:0;top:16px;height:2px;background:var(--line)}
+  #fill{position:absolute;left:0;top:16px;height:2px;background:var(--signal)}
+  #segs{position:absolute;left:0;right:0;top:11px;height:12px;display:flex;gap:1px}
+  #segs div{height:100%;opacity:.5}
+  #knob{position:absolute;top:9px;width:3px;height:16px;background:var(--txt);
+        transform:translateX(-1px);pointer-events:none}
+
+  .spd{display:flex;gap:1px;flex:none}
+  .spd button{padding:7px 10px;border:1px solid var(--line);background:transparent;color:var(--faint);
+              font-family:var(--mono);font-size:11.5px;cursor:pointer}
+  .spd button:hover{color:var(--txt)}
+  .spd button[aria-pressed="true"]{color:var(--void);background:var(--signal);border-color:var(--signal)}
+  .spd button:focus-visible{outline:1px solid var(--signal);outline-offset:2px}
+
+  #eta{flex:none;text-align:right;font-family:var(--mono);font-size:12px;color:var(--dim);
+       font-variant-numeric:tabular-nums;line-height:1.35}
+  #eta b{display:block;color:var(--txt);font-weight:500;font-size:14px}
+
+  #legend{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);display:flex;
+          flex-wrap:wrap;justify-content:center;gap:6px 16px;align-items:center;padding:10px 18px;
+          background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(14px);
+          -webkit-backdrop-filter:blur(14px);z-index:15;max-width:calc(100vw - 380px)}
+  .keys{display:flex;gap:4px;align-items:center}
+  .keys kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--line);
+            padding:3px 6px;color:var(--txt);background:rgba(255,255,255,.04);line-height:1}
+  .keys em{font-style:normal;font-family:var(--cond);font-size:11px;letter-spacing:.11em;
+           text-transform:uppercase;color:var(--faint);margin-left:4px}
+  #legend.hidden{display:none}
+  #legtoggle{position:fixed;right:16px;bottom:96px;z-index:16;padding:8px 12px;
+             background:var(--panel);border:1px solid var(--line);color:var(--faint);
+             font-family:var(--cond);font-size:11px;letter-spacing:.11em;text-transform:uppercase;
+             cursor:pointer;backdrop-filter:blur(14px)}
+  #legtoggle:hover{color:var(--txt);border-color:var(--signal)}
+
+  #fatal{position:fixed;inset:0;z-index:99;display:none;place-items:center;padding:32px;
+         background:var(--void);color:var(--txt)}
+  #fatal:not([hidden]){display:grid}
+  #fatal > div{max-width:560px;border:1px solid var(--run);border-left-width:3px;padding:22px 26px;
+               background:var(--deep)}
+  #fatal h2{margin:0 0 10px;font-family:var(--cond);font-size:22px;font-weight:600;
+            text-transform:uppercase;letter-spacing:.08em;color:var(--run)}
+  #fatal p{margin:0 0 9px;font-size:13.5px;line-height:1.6;color:var(--dim)}
+  #fatal .fx{color:var(--faint);font-size:12.5px}
+  #fatal code{font-family:var(--mono);font-size:12px;color:var(--signal)}
+
+  #burger{display:none}
+
+  @media (max-width:920px){
+    #rail{transform:translateX(-320px);transition:transform .28s ease;z-index:20}
+    #rail.open{transform:none}
+    #burger{display:grid;position:fixed;top:16px;left:16px;z-index:21;width:40px;height:40px;
+            place-items:center;background:var(--panel);border:1px solid var(--line);color:var(--txt);
+            cursor:pointer;backdrop-filter:blur(14px)}
+    #rail.open + #burger{left:326px}
+    #hud{width:150px;padding:11px 13px}
+    #eta{display:none}
+    #legend{max-width:calc(100vw - 32px);gap:5px 11px;padding:8px 12px}
+    #legtoggle{display:none}
+  }
+  @media (max-width:560px){
+    #hud{top:auto;bottom:96px;right:16px}
+    #bar{gap:10px;padding:0 10px}
+    .spd{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #rail{transition:none}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<button id="burger" aria-label="Toggle machine panel">
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect y="2" width="16" height="1.6"/><rect y="7.2" width="16" height="1.6"/><rect y="12.4" width="16" height="1.6"/></svg>
+</button>
+
+<aside class="panel" id="rail">
+  <div class="head">
+    <h1>ArtBot</h1>
+    <p>Vertical plotter, 1800 &times; 1200 mm. A live drawing installation: one large piece in a single black Sharpie, drawn in front of an audience. Tone comes from hatch density, not colour.</p>
+    <span class="tag">Build plan &middot; v2 &middot; 23:06:18</span>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Machine</span>
+    <dl class="spec">
+      <dt>Frame</dt><dd>1800 &times; 1200</dd>
+      <dt>Drawing area</dt><dd>1600 &times; 980</dd>
+      <dt>Fits</dt><dd>A0 landscape</dd>
+      <dt>Pen</dt><dd>1 &times; Sharpie</dd>
+      <dt>Motors</dt><dd>3 &times; NEMA 23</dd>
+      <dt>Drivers</dt><dd>3 &times; TB6600</dd>
+      <dt>Supply</dt><dd>24 V &middot; 15 A</dd>
+      <dt>Resolution</dt><dd>80 steps/mm</dd>
+      <dt>Draw feed</dt><dd>3000 mm/min</dd>
+      <dt>Rail standoff</dt><dd>55 mm</dd>
+      <dt>Lean</dt><dd>7&deg;</dd>
+    </dl>
+    <span class="lbl" style="display:block;margin:16px 0 10px">Heights</span>
+    <dl class="spec">
+      <dt>Pen park</dt><dd>760 mm</dd>
+      <dt>Drawing bottom</dt><dd>905 mm</dd>
+      <dt>Drawing centre</dt><dd>1395 mm</dd>
+      <dt>Drawing top</dt><dd>1885 mm</dd>
+      <dt>Crowd eye level</dt><dd>1475 mm</dd>
+      <dt>Overall</dt><dd>1900 mm</dd>
+    </dl>
+    <p class="note" style="margin-top:11px">Eye level is the NFHS-5 average for Indian adults &mdash; men 165 cm, women 153 cm &mdash; less 11 cm. The drawing centres just below it, which is where the 1448 mm museum hanging standard also lands. Overall height stays under a 2030 mm door, so the built frame can still leave the room.</p>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Show</span>
+    <button class="sw" id="t-belt" aria-pressed="true"><span class="box"></span>Belts and idlers</button>
+    <button class="sw" id="t-rack" aria-pressed="true"><span class="box"></span>Pen rack</button>
+    <button class="sw" id="t-elec" aria-pressed="true"><span class="box"></span>Electronics and legs</button>
+    <button class="sw" id="t-zone" aria-pressed="false"><span class="box"></span>Drawing area outline</button>
+    <button class="sw" id="t-human" aria-pressed="true"><span class="box"></span>People (165 / 153 cm) and eye level</button>
+    <button class="sw" id="t-spin" aria-pressed="false"><span class="box"></span>Auto-rotate</button>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Lighting</span>
+    <input id="expo" class="rng" type="range" min="45" max="300" value="135" aria-label="Brightness">
+    <div class="rngrow"><span>dim</span><b id="expoval">1.35&times;</b><span>bright</span></div>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Look at</span>
+    <div class="views">
+      <button data-v="machine">Whole machine</button>
+      <button data-v="rack">Pen rack</button>
+      <button data-v="carriage">Carriage</button>
+      <button data-v="front">Front on</button>
+      <button data-v="eye">Eye level</button>
+    </div>
+
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Parts &mdash; click one</span>
+    <div id="plist"></div>
+    <p class="note" style="margin-top:10px">Click a part here or in the 3D view. Prices are indicative USD and swing hard by region &mdash; verify locally.</p>
+    <p class="note"><b id="ptotal">&mdash;</b></p>
+  </div>
+
+  <div id="pinfo" class="sec" hidden></div>
+
+  <div class="sec">
+    <span class="lbl">Will it work? &mdash; the numbers</span>
+    <div id="eng"></div>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Cut list</span>
+    <dl class="spec">
+      <dt>2020 &times; 1200</dt><dd>2 &mdash; uprights</dd>
+      <dt>2020 &times; 1760</dt><dd>2 &mdash; cross members</dd>
+      <dt>2040 &times; 1800</dt><dd>1 &mdash; the moving rail</dd>
+      <dt>2020 &times; 700</dt><dd>2 &mdash; riser legs</dd>
+      <dt>2020 &times; 1760</dt><dd>1 &mdash; base tie</dd>
+      <dt>2020 &times; 430</dt><dd>2 &mdash; front toes</dd>
+      <dt>2020 &times; 1150</dt><dd>2 &mdash; rear braces</dd>
+      <dt>Flat bar 30&times;3</dt><dd>1 &times; 1800 &mdash; stiffener</dd>
+    </dl>
+    <p class="note" style="margin-top:11px"><b>Order it cut to length.</b> Every supplier cuts to order and their ends are square. A hacksawn 1800 mm extrusion is out of square, and an out-of-square frame draws parallelograms that no software setting will fix.</p>
+    <p class="note">Roughly 12.3 m of 2020 total &mdash; order 14 m for waste. Cross members are 1760 because they sit <i>between</i> the uprights, giving an outer envelope of exactly 1800.</p>
+    <p class="note">Assemble flat on the floor, corner brackets and T-nuts, then <b>measure both diagonals before final tightening</b> &mdash; they must match within 2 mm. That single measurement is the difference between a machine that draws squares and one that draws rhombuses.</p>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Pen</span>
+    <p class="note">One black Sharpie Fine Point, clamped in the spring-loaded shuttle. No pen changer, no rack, no magnets &mdash; that whole mechanism is cut.</p>
+    <p class="note">Cutting it bought back the 130&nbsp;mm rack strip, so the drawing area went from 1600&times;850 to <b>1600&times;980</b>. A0 landscape now sits with 70&nbsp;mm clearance top and bottom instead of 4.5&nbsp;mm, which means paper magnets fit on all four edges and the clamp bar is no longer needed either.</p>
+    <p class="note">Nothing is foreclosed. The changer was always a bolt-on to the bottom rail; the Cartesian architecture that makes it possible is unchanged. Add it next semester to a machine that already runs.</p>
+    <div class="warn" style="margin-top:12px">
+      <span class="lbl">Still true with one pen</span>
+      <p class="note">A Sharpie fades over a 2&nbsp;hour continuous plot as the tip softens. Feed-hold (<code>!</code>), swap, cycle-start (<code>~</code>) &mdash; the spring absorbs the length difference so the tip returns to the same pressure. Budget a swap around 90&nbsp;min, and test one pen against a long plot first so you know when it goes.</p>
+    </div>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Decided</span>
+    <p class="note">Full size in one go &middot; freestanding leaning frame &middot; magnetic whiteboard with paper laid on by hand &middot; rail levelled by hand against top stops at power-on &middot; no homing cycle &middot; two switches as hard limits only &middot; <b>one black pen, no changer</b>.</p>
+  </div>
+</aside>
+
+<aside class="panel" id="hud">
+  <div class="row"><span>Pen X</span><span id="px">0</span></div>
+  <div class="row"><span>Pen Y</span><span id="py">0</span></div>
+  <div class="row"><span>Pen</span><span id="pzs">&mdash;</span></div>
+  <div class="row"><span>Colour</span><span id="pc">&mdash;</span></div>
+  <div class="row"><span>Done</span><span id="pp">0%</span></div>
+  <div class="state"><span class="dot" id="dot"></span><span id="st">Idle</span></div>
+  <div class="mv"><span id="mvn">0 / 0</span><span id="mvd">&mdash;</span></div>
+</aside>
+
+<div class="panel" id="bar">
+  <button class="btn" id="play" aria-label="Play"><svg id="pico" viewBox="0 0 16 16"><path d="M3 1.5v13l11-6.5z"/></svg></button>
+  <button class="btn" id="rew" aria-label="Restart"><svg viewBox="0 0 16 16"><path d="M2 2h2v5.2L13 2v12L4 8.8V14H2z"/></svg></button>
+  <button class="btn" id="prev" aria-label="Previous move"><svg viewBox="0 0 16 16"><path d="M11 1.5v13L3 8z"/><rect x="1" y="1.5" width="1.8" height="13"/></svg></button>
+  <button class="btn" id="next" aria-label="Next move"><svg viewBox="0 0 16 16"><path d="M5 1.5v13L13 8z"/><rect x="13.2" y="1.5" width="1.8" height="13"/></svg></button>
+  <div id="track" role="slider" tabindex="0" aria-label="Scrub drawing" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div id="segs"></div><div id="fill"></div><div id="knob"></div>
+  </div>
+  <div class="spd">
+    <button data-s="60" aria-pressed="true">60&times;</button>
+    <button data-s="300" aria-pressed="false">300&times;</button>
+    <button data-s="1200" aria-pressed="false">1200&times;</button>
+  </div>
+  <div id="eta"><b id="etat">&mdash;</b><span>machine time</span></div>
+</div>
+
+<div id="legend">
+  <div class="keys"><kbd>Drag</kbd><em>look around</em></div>
+  <div class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><em>walk</em></div>
+  <div class="keys"><kbd>Space</kbd><kbd>Shift</kbd><em>up / down</em></div>
+  <div class="keys"><kbd>Scroll</kbd><em>zoom</em></div>
+  <div class="keys"><kbd>R</kbd><em>reset</em></div>
+  <div class="keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd><em>step one move</em></div>
+  <div class="keys"><kbd>P</kbd><em>play</em></div>
+</div>
+<button id="legtoggle">Hide keys</button>
+
+<div id="fatal" hidden>
+  <div>
+    <h2>The 3D view could not start</h2>
+    <p id="fatalmsg"></p>
+    <p class="fx">Most likely three.js did not load. Check that <code>three.min.js</code> sits next to this HTML file.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+function fatal(msg){
+  var f = document.getElementById("fatal");
+  document.getElementById("fatalmsg").textContent = msg;
+  f.hidden = false;
+  console.error("[ArtBot]", msg);
+}
+if (typeof THREE === "undefined"){
+  fatal("three.js is not available (no local three.min.js and the CDN was unreachable).");
+  return;
+}
+/* NOTE: deliberately no global error handler here - window "error" also fires
+   for resource 404s (favicon, fonts) and would blank a perfectly good page. */
+try {
+var RM = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+/* ======================= configuration (mm) ======================= */
+var C = {
+  frameW:1800, frameH:1200, ext:20, ext40:40,
+  workW:1600, workH:980,
+  standoff:55, lean:7*Math.PI/180, riser:700, eyeLevel:1475,
+  drawFeed:3000, travelFeed:5000,
+  rackSlots:1, penUpZ:9
+};
+/* work area sits below the rack strip */
+var WORK_TOP = C.frameH/2 - 90;           /* scene Y of machine-Y 0 */
+var WORK_LEFT = -C.workW/2;               /* scene X of machine-X 0 */
+var RACK_Y = -C.frameH/2 + 60;            /* single pen parks here */
+function sx(mx){ return WORK_LEFT + mx; }
+function sy(my){ return WORK_TOP - my; }
+
+/* One pen. Sharpie Fine Point, black. The whole drawing is tone, not colour. */
+var INKS = [ {name:"Black", hex:0x1E2225, css:"#C8CDD0"} ];
+
+/* ======================= renderer / scene ======================= */
+var cv = document.getElementById("c");
+var renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.LinearToneMapping;
+renderer.toneMappingExposure = 1.35;
+
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0B0E10);
+scene.fog = new THREE.Fog(0x0B0E10, 3600, 9000);
+
+var camera = new THREE.PerspectiveCamera(38, 1, 10, 20000);
+
+/* lights */
+scene.add(new THREE.HemisphereLight(0xAFC6D2, 0x14191C, 1.05));
+scene.add(new THREE.AmbientLight(0x8CA3AE, 0.32));
+var key = new THREE.DirectionalLight(0xFFF3E2, 1.05);
+key.position.set(-1500, 2400, 2600);
+key.castShadow = true;
+key.shadow.mapSize.set(2048,2048);
+var sc = key.shadow.camera;
+sc.left=-1700; sc.right=1700; sc.top=1500; sc.bottom=-1500; sc.near=100; sc.far=8000;
+scene.add(key);
+var rim = new THREE.DirectionalLight(0x6FB6C8, 0.55);
+rim.position.set(1800, 600, -1400);
+scene.add(rim);
+var fill = new THREE.DirectionalLight(0xCBDCE4, 0.55);   /* kills the black undersides */
+fill.position.set(1100, 500, 3000);
+scene.add(fill);
+var under = new THREE.DirectionalLight(0x7E939E, 0.30);  /* bounce from the floor */
+under.position.set(-600, -1400, 900);
+scene.add(under);
+
+/* materials */
+function mat(c,r,m){ return new THREE.MeshStandardMaterial({color:c, roughness:r, metalness:m}); }
+var M = {
+  ext:   mat(0x2E373C, 0.62, 0.35),
+  alu:   mat(0x98A4AA, 0.38, 0.72),
+  motor: mat(0x3A4247, 0.55, 0.55),
+  print: mat(0x5AC8D8, 0.72, 0.05),
+  print2:mat(0x2E4A52, 0.75, 0.05),
+  belt:  mat(0xE8B23C, 0.85, 0.0),
+  board: new THREE.MeshStandardMaterial({color:0xC9CCC8, roughness:0.95, metalness:0.0}),
+  steel: mat(0x6E787E, 0.42, 0.8),
+  dark:  mat(0x14191C, 0.8, 0.2),
+  floor: mat(0x0E1215, 0.98, 0.0),
+  hl:    new THREE.MeshStandardMaterial({color:0x5AC8D8, emissive:0x14545E, roughness:0.45, metalness:0.2})
+};
+
+/* helpers */
+var _part = null;                     /* whatever part we are currently building */
+var PARTMESH = {};                    /* part id -> [meshes], for highlight + focus */
+function tag(o){
+  if (!_part) return o;
+  o.userData.part = _part;
+  (PARTMESH[_part] = PARTMESH[_part] || []).push(o);
+  return o;
+}
+function box(w,h,d,m,x,y,z,parent){
+  var o = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m);
+  o.position.set(x||0,y||0,z||0);
+  o.castShadow = true; o.receiveShadow = true;
+  (parent||scene).add(o); return tag(o);
+}
+function cyl(r,h,m,parent){
+  var o = new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,26), m);
+  o.castShadow = true; o.receiveShadow = true;
+  (parent||scene).add(o); return tag(o);
+}
+/* a cylinder spanning two world points */
+function strut(a,b,r,m,parent){
+  var d = new THREE.Vector3().subVectors(b,a), len = d.length();
+  var o = new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,14), m);
+  o.position.copy(a).addScaledVector(d,0.5);
+  o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), d.clone().normalize());
+  o.castShadow = true; (parent||scene).add(o); return tag(o);
+}
+
+/* ======================= the rig ======================= */
+var COS = Math.cos(C.lean), SIN = Math.sin(C.lean);
+var rig = new THREE.Group();
+rig.rotation.x = -C.lean;
+rig.position.y = C.riser + (C.frameH/2)*COS;   /* board lifted to viewing height */
+scene.add(rig);
+
+/* floor */
+M.floor.color.setHex(0x171D21);
+var floor = new THREE.Mesh(new THREE.PlaneGeometry(14000,14000), M.floor);
+floor.rotation.x = -Math.PI/2; floor.receiveShadow = true;
+scene.add(floor);
+var grid = new THREE.GridHelper(12000, 48, 0x1A2226, 0x141A1D);
+grid.position.y = 0.5; scene.add(grid);
+
+_part="board";
+var board = box(C.frameW-40, C.frameH-40, 16, M.board, 0, 0, -12, rig);
+box(C.frameW-16, C.frameH-16, 6, M.dark, 0, 0, -24, rig);
+
+_part="frame2020";
+/* frame: 2020 uprights + cross members */
+var hw = C.frameW/2 - C.ext/2, hh = C.frameH/2 - C.ext/2;
+box(C.ext, C.frameH, C.ext, M.ext, -hw, 0, 10, rig);
+box(C.ext, C.frameH, C.ext, M.ext,  hw, 0, 10, rig);
+box(C.frameW, C.ext, C.ext, M.ext, 0,  hh, 10, rig);
+box(C.frameW, C.ext, C.ext, M.ext, 0, -hh, 10, rig);
+
+/* drawing-area outline */
+var zoneG = new THREE.Group(); rig.add(zoneG); zoneG.visible = false;
+(function(){
+  var g = new THREE.BufferGeometry();
+  var L = sx(0), R = sx(C.workW), T = sy(0), B = sy(C.workH);
+  g.setAttribute("position", new THREE.Float32BufferAttribute(
+    [L,T,-3, R,T,-3, R,T,-3, R,B,-3, R,B,-3, L,B,-3, L,B,-3, L,T,-3],3));
+  zoneG.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({color:0x5AC8D8})));
+})();
+
+/* ---- Y axis: gantry plates carry the rail ---- */
+var gantry = new THREE.Group(); rig.add(gantry);
+var RAIL_Z = C.standoff + C.ext/2;   /* pen-down plane: tip reaches the board face */
+var RACK_Z = RAIL_Z + 12;            /* stored pens sit clear of the board */
+var PITCH_R = 20 * 2 / (2*Math.PI);  /* 20-tooth GT2 pitch radius = 6.37 mm */
+
+/* everything that visibly moves gets registered here */
+var ANIM = {yPul:[], yIdl:[], xPul:null, xIdl:null, springs:[], horn:null,
+            yUp:[], yDn:[], xL:null, xR:null, jaws:[]};
+
+/* --- reusable detail parts --- */
+function pulley20T(parent, x, y, z){
+  var g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
+  var b = cyl(PITCH_R + 0.6, 7.4, M.steel, g); b.rotation.x = Math.PI/2;
+  [-4.6, 4.6].forEach(function(o){
+    var f = cyl(PITCH_R + 2.6, 1.5, M.steel, g); f.rotation.x = Math.PI/2; f.position.z = o;
+  });
+  for (var i = 0; i < 20; i++){                       /* 20 teeth, actually counted */
+    var a = i/20 * Math.PI*2;
+    box(1.15, 1.15, 6.6, M.dark,
+        Math.cos(a)*(PITCH_R + 0.4), Math.sin(a)*(PITCH_R + 0.4), 0, g);
+  }
+  return g;
+}
+function idler20T(parent, x, y, z){
+  var g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
+  var b = cyl(PITCH_R + 0.6, 7.4, M.steel, g); b.rotation.x = Math.PI/2;
+  [-4.6, 4.6].forEach(function(o){
+    var f = cyl(PITCH_R + 2.6, 1.5, M.steel, g); f.rotation.x = Math.PI/2; f.position.z = o;
+  });
+  var bolt = cyl(2.5, 26, M.dark, g); bolt.rotation.x = Math.PI/2;
+  return g;
+}
+function nema23(parent, x, y, z){
+  var g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
+  box(57, 57, 76, M.motor, 0, 0, 0, g);
+  var boss = cyl(19, 5, M.steel, g); boss.rotation.x = Math.PI/2; boss.position.z = -40;
+  var sh = cyl(4, 30, M.steel, g);  sh.rotation.x = Math.PI/2;  sh.position.z = -52;
+  [[-23.6,-23.6],[23.6,-23.6],[23.6,23.6],[-23.6,23.6]].forEach(function(a){
+    var bl = cyl(2.6, 7, M.dark, g); bl.rotation.x = Math.PI/2;
+    bl.position.set(a[0], a[1], -36);                 /* NEMA 23 bolts, 47.14 sq */
+  });
+  box(22, 14, 9, M.dark, 0, 0, 41, g);                /* cable exit */
+  return g;
+}
+/* compression spring, natural length `len`, running along -Z from its origin */
+function coilSpring(len, rad, coils){
+  var pts = [], n = coils * 20;
+  for (var i = 0; i <= n; i++){
+    var t = i/n, a = t * coils * Math.PI * 2;
+    pts.push(new THREE.Vector3(Math.cos(a)*rad, Math.sin(a)*rad, -t*len));
+  }
+  var m = new THREE.Mesh(
+    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), n, 0.85, 6, false), M.steel);
+  m.castShadow = true;
+  return m;
+}
+
+/* --- the rail --- */
+_part="rail2040";
+box(C.frameW, C.ext40, C.ext, M.alu, 0, 0, RAIL_Z, gantry);              /* 2040 rail */
+_part="stiffener";
+box(C.frameW-30, 6, 26, M.steel, 0, 0, RAIL_Z + 18, gantry);             /* stiffener */
+[-1,1].forEach(function(s){
+  _part="gantryplate";
+  box(64, 64, 8, M.alu, s*hw, 0, 32, gantry);                            /* gantry plate */
+  _part="vwheel";
+  [[-20,-20],[20,-20],[20,20],[-20,20]].forEach(function(o){             /* V-wheels */
+    var w = cyl(7.5, 9, M.dark, gantry); w.rotation.x = Math.PI/2;
+    w.position.set(s*hw + o[0], o[1], 22);
+  });
+});
+
+_part=null;
+/* --- X motor on the left end of the rail, idler on the right --- */
+_part="motor";
+nema23(gantry, -hw + 60, 0, RAIL_Z + 60);
+_part="pulley";
+ANIM.xPul = pulley20T(gantry, -hw + 60, 0, RAIL_Z + 12);
+_part="idler";
+ANIM.xIdl = idler20T(gantry,  hw - 46, 0, RAIL_Z + 12);
+
+/* ================= pen carriage, in detail ================= */
+_part="vwheel";
+var carriage = new THREE.Group(); gantry.add(carriage);
+var MP_Z = RAIL_Z + 27;    /* mount plate centre */
+var FW_Z = RAIL_Z - 35;    /* front wall centre  */
+
+/* rides the rail on four V-wheels */
+[[-30,-22],[30,-22],[30,22],[-30,22]].forEach(function(o){
+  var w = cyl(7.5, 9, M.dark, carriage); w.rotation.x = Math.PI/2;
+  w.position.set(o[0], o[1], RAIL_Z);
+});
+_part="printed";
+box(90, 76, 8, M.print, 0, 0, MP_Z, carriage);            /* mount plate  */
+box(90, 76, 8, M.print, 0, 0, FW_Z, carriage);            /* front wall   */
+[-42, 42].forEach(function(x){
+  box(6, 76, MP_Z - FW_Z, M.print2, x, 0, (MP_Z+FW_Z)/2, carriage);   /* side ribs */
+});
+/* pen pass-through in the front wall */
+_part="rod";
+[-20, 20].forEach(function(x){                             /* two guide rods */
+  var r = cyl(4, MP_Z - FW_Z, M.steel, carriage);
+  r.rotation.x = Math.PI/2; r.position.set(x, 0, (MP_Z+FW_Z)/2);
+});
+
+/* the shuttle slides on the rods. Springs push it at the board, servo pulls it back. */
+var SPRING_FREE = 14;
+_part="printed";
+var shuttle = new THREE.Group(); carriage.add(shuttle);
+box(62, 34, 18, M.print, 0, 0, 0, shuttle);                /* shuttle block */
+box(62, 3.2, 18, M.dark, 0, 17, 0, shuttle);               /* split-clamp kerf */
+var pinch = cyl(1.7, 66, M.dark, shuttle);                 /* pinch bolt */
+pinch.rotation.z = Math.PI/2; pinch.position.set(0, 11, 0);
+[-9, 9].forEach(function(x){                               /* coupling magnets */
+  box(9, 9, 3, M.steel, x, 0, -10, shuttle);
+});
+box(6, 30, 7, M.print2, -30, 20, -6, shuttle);             /* servo cam tab */
+
+_part="spring";
+[-20, 20].forEach(function(x){                             /* one spring per rod */
+  var sp = coilSpring(SPRING_FREE, 6.2, 5);
+  sp.position.set(x, 0, MP_Z - 4);
+  carriage.add(sp); ANIM.springs.push(sp);
+});
+
+/* SG90 + a horn that actually swings with the pen */
+_part="servo";
+box(23, 12.4, 23, M.dark, -52, 26, RAIL_Z - 12, carriage);        /* servo body */
+box(32.2, 2.6, 8, M.dark, -52, 26, RAIL_Z - 22, carriage);        /* mounting tabs */
+ANIM.horn = new THREE.Group();
+ANIM.horn.position.set(-40, 26, RAIL_Z - 12);
+carriage.add(ANIM.horn);
+box(4, 3, 17, mat(0xE8E8E4, 0.6, 0.0), 0, 0, -8, ANIM.horn);      /* the arm */
+var hub = cyl(3.2, 5, mat(0xE8E8E4, 0.6, 0.0), ANIM.horn); hub.rotation.z = Math.PI/2;
+
+/* whatever puck is currently held hangs off the shuttle */
+var heldGroup = new THREE.Group(); shuttle.add(heldGroup);
+
+function makePuck(ink){
+  var pv=_part; _part="pen";
+  var g = new THREE.Group();
+  box(30, 30, 14, mat(ink.hex, 0.7, 0.05), 0, 0, -10, g);   /* printed puck, ink-coded */
+  box(9, 9, 3, M.steel, -9, 0, -2, g);                      /* mating magnets */
+  box(9, 9, 3, M.steel,  9, 0, -2, g);
+  box(34, 6, 8, mat(ink.hex, 0.7, 0.05), 0, 0, -14, g);     /* waist the rack grips */
+  var barrel = cyl(8, 34, mat(0x2B3135, 0.7, 0.1), g);
+  barrel.rotation.x = Math.PI/2; barrel.position.z = -36;
+  var band = cyl(8.4, 22, mat(ink.hex, 0.5, 0.05), g);
+  band.rotation.x = Math.PI/2; band.position.z = -58;
+  var tip = new THREE.Mesh(new THREE.ConeGeometry(3.4, 10, 18), mat(ink.hex, 0.6, 0.0));
+  tip.rotation.x = -Math.PI/2; tip.position.z = -64; g.add(tip);
+  _part=pv;
+  return g;
+}
+
+/* ================= the pen rack ================= */
+_part="printed";
+var rackG = new THREE.Group(); rig.add(rackG);
+var SLOT_X = [], pucks = [];
+(function(){
+  var span = 520, x0 = -span/2;
+  box(span+110, 26, 14, M.print2, 0, RACK_Y - 30, RACK_Z + 18, rackG);   /* spine */
+  for (var i = 0; i < C.rackSlots; i++){
+    var x = x0 + span * (C.rackSlots > 1 ? i/(C.rackSlots-1) : 0.5);   /* 1 slot: centre it */
+    SLOT_X.push(x);
+    box(46, 10, 26, M.print2, x, RACK_Y - 19, RACK_Z, rackG);            /* seat floor */
+    var pair = [];
+    [-1, 1].forEach(function(sd){                                        /* sprung jaws */
+      var j = new THREE.Group();
+      j.position.set(x + sd*20, RACK_Y - 12, RACK_Z);
+      rackG.add(j);
+      box(4, 30, 26, M.print, 0, 12, 0, j);                              /* the leaf */
+      box(6, 5, 26, M.print, -sd*1.5, 25, 0, j);                         /* the lip */
+      j.userData.side = sd;
+      pair.push(j);
+    });
+    ANIM.jaws.push(pair);
+    var pk = makePuck(INKS[i]);
+    pk.position.set(x, RACK_Y, RACK_Z);
+    rackG.add(pk); pucks.push(pk);
+  }
+})();
+
+/* ================= belts, Y motors, idlers ================= */
+var beltG = new THREE.Group(); rig.add(beltG);
+[-1, 1].forEach(function(s){
+  _part="motor"; nema23(rig, s*hw, hh, 70);
+  _part="pulley";
+  ANIM.yPul.push(pulley20T(beltG, s*hw, hh, 22));
+  _part="idler"; ANIM.yIdl.push(idler20T(beltG, s*hw, -hh, 22));
+  _part="belt";
+  /* unit-height boxes, scaled every frame to the live gantry position */
+  ANIM.yUp.push(box(4, 1, 3, M.belt, s*hw - PITCH_R, 0, 22, beltG));
+  ANIM.yDn.push(box(4, 1, 3, M.belt, s*hw + PITCH_R, 0, 22, beltG));
+});
+ANIM.xL = box(1, 4, 3, M.belt, 0, -PITCH_R, RAIL_Z + 12, gantry);
+ANIM.xR = box(1, 4, 3, M.belt, 0,  PITCH_R, RAIL_Z + 12, gantry);
+
+/* drive every moving part from the pen position. Called once per frame. */
+function updateMechanism(px, py, pz){
+  /* pulleys turn by belt travel / pitch radius */
+  for (var i = 0; i < 2; i++){
+    ANIM.yPul[i].rotation.z = -py / PITCH_R;
+    ANIM.yIdl[i].rotation.z = -py / PITCH_R;
+    var up = Math.max(1, hh - py), dn = Math.max(1, py + hh);
+    ANIM.yUp[i].scale.y = up; ANIM.yUp[i].position.y = py + up/2;
+    ANIM.yDn[i].scale.y = dn; ANIM.yDn[i].position.y = py - dn/2;
+  }
+  ANIM.xPul.rotation.z = px / PITCH_R;
+  ANIM.xIdl.rotation.z = px / PITCH_R;
+  var lx = -hw + 60, rx = hw - 46;
+  var L = Math.max(1, px - lx), R = Math.max(1, rx - px);
+  ANIM.xL.scale.x = L; ANIM.xL.position.x = lx + L/2;
+  ANIM.xR.scale.x = R; ANIM.xR.position.x = rx - R/2;
+
+  /* springs compress as the servo pulls the pen off the board */
+  var gap = (MP_Z - 4) - (RAIL_Z + pz + 9);
+  var sc = Math.max(0.18, gap / SPRING_FREE);
+  ANIM.springs[0].scale.z = sc; ANIM.springs[1].scale.z = sc;
+
+  /* servo horn swings through its travel */
+  ANIM.horn.rotation.x = -0.30 + (pz / C.penUpZ) * 1.05;
+
+  /* rack jaws splay when the carriage is at that slot */
+  for (var k = 0; k < ANIM.jaws.length; k++){
+    var near = Math.abs(px - SLOT_X[k]) < 26 && Math.abs(py - RACK_Y) < 70;
+    var pair = ANIM.jaws[k];
+    for (var j = 0; j < 2; j++){
+      var want = near ? pair[j].userData.side * 0.26 : 0;
+      pair[j].rotation.z += (want - pair[j].rotation.z) * 0.2;
+    }
+  }
+}
+
+/* ---- legs, feet, electronics (world space, computed off the lean) ---- */
+_part="base";
+var baseG = new THREE.Group(); scene.add(baseG);
+(function(){
+  function W(x,y){ return new THREE.Vector3(x, rig.position.y + y*COS, -y*SIN); }
+  var legFeet = [];
+  [-1,1].forEach(function(s){
+    var fb = W(s*hw, -C.frameH/2 + 20);                 /* frame bottom corner */
+    var gnd = new THREE.Vector3(fb.x, 0, fb.z);
+    strut(fb, gnd, 16, M.steel, baseG);                                  /* upright leg */
+    strut(gnd, new THREE.Vector3(fb.x, 0, fb.z + 430), 12, M.steel, baseG);  /* toe */
+    strut(W(s*hw, 60), new THREE.Vector3(fb.x, 0, fb.z - 820), 13, M.steel, baseG); /* rear brace */
+    box(170, 18, 100, M.dark, fb.x, 9, fb.z + 430, baseG);
+    box(170, 18, 100, M.dark, fb.x, 9, fb.z - 820, baseG);
+    legFeet.push(gnd);
+  });
+  strut(new THREE.Vector3(legFeet[0].x, 240, legFeet[0].z),
+        new THREE.Vector3(legFeet[1].x, 240, legFeet[1].z), 11, M.steel, baseG);
+  /* control box on the left rear leg */
+  _part="electronics";
+  var e = new THREE.Group(); e.position.set(-hw, 380, -520); baseG.add(e);
+  box(300, 210, 130, M.dark, 0,0,0, e);
+  box(268, 178, 3, mat(0x0A0D0F,0.9,0.1), 0,0,66, e);
+  for (var i=0;i<3;i++) box(56, 96, 22, M.steel, -84 + i*84, 20, 70, e);  /* TB6600 bricks */
+  box(70, 52, 16, mat(0x11602E,0.8,0.1), 40, -62, 70, e);                 /* Uno + shield */
+})();
+
+/* ---- 1.7 m person, for scale, and the eye-level line ---- */
+_part=null;
+var scaleG = new THREE.Group(); scene.add(scaleG);
+(function(){
+  var skin = mat(0x0E1418, 1.0, 0.0);
+  /* NFHS-5 (2019-21) adult averages: men 165 cm, women 153 cm */
+  function person(H, x, z, face){
+    var p = new THREE.Group();
+    p.position.set(x, 0, z); p.rotation.y = face; scaleG.add(p);
+    [-0.058*H, 0.058*H].forEach(function(o){
+      var leg = cyl(0.037*H, 0.47*H, skin, p); leg.position.set(o, 0.235*H, 0);
+    });
+    var torso = cyl(0.091*H, 0.36*H, skin, p); torso.position.y = 0.655*H;
+    box(0.22*H, 0.07*H, 0.12*H, skin, 0, 0.825*H, 0, p);
+    var head = new THREE.Mesh(new THREE.SphereGeometry(0.062*H, 20, 16), skin);
+    head.position.y = 0.93*H; head.castShadow = true; p.add(head);
+    [-0.13*H, 0.13*H].forEach(function(o){
+      var arm = cyl(0.028*H, 0.37*H, skin, p); arm.position.set(o, 0.66*H, 0.02*H);
+    });
+    return p;
+  }
+  person(1650, -1230, 1010, 0.30);    /* 165 cm - Indian adult male average   */
+  person(1530,  1610, 880, -0.34);   /* 153 cm - Indian adult female average */
+
+  /* eye-level reference across the board */
+  var g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(
+    [-1250, C.eyeLevel, 700, 1250, C.eyeLevel, 700], 3));
+  var ln = new THREE.Line(g, new THREE.LineDashedMaterial(
+    {color:0x5AC8D8, dashSize:44, gapSize:30}));
+  ln.computeLineDistances(); scaleG.add(ln);
+})();
+
+
+/* ================= the bill of materials =================
+   Prices are indicative USD for reference only - verify locally, they swing
+   hard by region and vendor. Dimensions are the ones that MUST match; where a
+   number is a standard (NEMA 23 bolt circle, GT2 pitch) it is exact.        */
+var PARTS = {
+  board: {n:"Whiteboard", spec:"Magnetic porcelain / ceramic steel, aluminium framed",
+    dim:"1800 × 1200 mm · ~20-25 kg", qty:"1", usd:"180-260",
+    src:"Office supply / signage supplier. MUST say magnetic AND porcelain (not melamine).",
+    note:"Heaviest single item and it is all hanging off the A-frame. Melamine ghosts and wears through; you will draw on this thousands of times. Check the shipping weight."},
+
+  rail2040: {n:"V-Slot 2040 — the moving rail", spec:"Aluminium 6063-T5, anodised, 6 mm slot",
+    dim:"20 × 40 mm · 1800 mm long · 0.9 kg/m", qty:"1", usd:"22-35",
+    src:"OpenBuilds, AliExpress, or any local extrusion supplier. ORDER CUT TO LENGTH.",
+    note:"2040 not 2020: about 4× stiffer for twice the weight. This is the most structurally critical part on the machine."},
+
+  frame2020: {n:"V-Slot 2020 — frame", spec:"Aluminium 6063-T5, anodised, 6 mm slot",
+    dim:"20 × 20 mm · 2×1200 + 2×1760 mm · 0.45 kg/m", qty:"4 pieces", usd:"28-45",
+    src:"Same supplier as the rail, same order.",
+    note:"Cross members are 1760 because they sit BETWEEN the uprights, giving an outer envelope of exactly 1800."},
+
+  base: {n:"V-Slot 2020 — riser and legs", spec:"Same profile, plus feet pads",
+    dim:"2×700 riser, 1×1760 tie, 2×430 toes, 2×1150 rear braces", qty:"7 pieces", usd:"18-30",
+    src:"Same order again - roughly 12.3 m of 2020 total, buy 14 m for waste.",
+    note:"The riser is what puts the drawing at eye level. Overall height lands at 1900 mm, under a 2030 mm door, so the built frame can still leave the room."},
+
+  stiffener: {n:"Flat bar stiffener", spec:"Aluminium flat bar, bolted to the back of the 2040",
+    dim:"30 × 3 × 1800 mm", qty:"1", usd:"6-12",
+    src:"Any metal supplier or hardware shop.",
+    note:"Only works if you bolt it every ~150 mm. Bolted properly it roughly DOUBLES the rail stiffness for about $8 - see the deflection numbers."},
+
+  motor: {n:"NEMA 23 stepper", spec:"1.9 N·m holding, 3.0 A/phase, 1.8° (200 steps/rev), bipolar 4-wire",
+    dim:"56.4 mm frame · 76 mm long · bolt circle 47.14 mm sq (M5) · boss Ø38.1 mm · shaft Ø8 mm · ~1.0 kg",
+    qty:"3", usd:"22-32 ea",
+    src:"StepperOnline, AliExpress. Spec to buy against, not a SKU - model numbers vary by vendor.",
+    note:"CONFIRM THE SHAFT DIAMETER when you order. 6.35 mm and 8 mm both exist and it sets the pulley bore. This is the mistake in the current hardware_plan."},
+
+  driver: {n:"TB6600 stepper driver", spec:"Up to 4.0 A/phase, 9-42 V, step/dir opto inputs",
+    dim:"External brick, ~96 × 56 × 33 mm", qty:"3", usd:"9-14 ea",
+    src:"AliExpress / Amazon.",
+    note:"These do NOT plug into the CNC Shield sockets - they are external, wired off the socket header pins. Microstep and current are DIP switches; use the table printed on YOUR brick, clones disagree."},
+
+  psu: {n:"Power supply", spec:"24 V DC, 15 A, 360 W, screw terminal, enclosed",
+    dim:"~215 × 115 × 50 mm", qty:"1", usd:"25-40",
+    src:"Mean Well LRS-350-24 or equivalent clone.",
+    note:"Peak draw is ~216 W across three motors, so 360 W gives ~40% headroom. 24 V not 12 V - the whole no-counterweight argument depends on torque at speed."},
+
+  control: {n:"Arduino Uno + CNC Shield V3", spec:"ATmega328P, GRBL 1.1 with servo support",
+    dim:"68.6 × 53.4 mm", qty:"1 each", usd:"12-20",
+    src:"Anywhere.",
+    note:"Flash a servo-capable GRBL build, NOT stock GRBL - the pipeline already emits M3 S90 / M5 with S as an angle."},
+
+  pulley: {n:"GT2 pulley, 20 tooth", spec:"2 mm pitch, 6 mm belt width, aluminium, 2 grub screws",
+    dim:"Pitch Ø 12.73 mm · bore MUST equal the motor shaft (8 mm)", qty:"3", usd:"3-5 ea",
+    src:"AliExpress.",
+    note:"20T × 2 mm pitch = 40 mm of belt per revolution, which is what makes 80 steps/mm correct at 16 microsteps. Change the tooth count and $100/$101 change."},
+
+  idler: {n:"GT2 idler, 20 tooth", spec:"Toothed idler with bearings, 5 mm bore on M5 shoulder bolts",
+    dim:"Same pitch Ø 12.73 mm · 5 mm bore", qty:"3", usd:"3-5 ea",
+    src:"AliExpress.",
+    note:"3 needed, not 5. The BOM's extra two were for the counterweight system that got dropped."},
+
+  belt: {n:"GT2 timing belt", spec:"6 mm wide, 2 mm pitch, fibreglass core, open ended",
+    dim:"10 m roll", qty:"1", usd:"10-16",
+    src:"AliExpress.",
+    note:"X run ~3.8 m, each Y run ~2.6 m. Buy 10 m. Fibreglass core, not steel - steel core is stiffer but will not take these pulley radii well."},
+
+  gantryplate: {n:"Gantry plate", spec:"OpenBuilds Mini-V style, 20 mm M5 hole grid",
+    dim:"~62 × 62 × 6 mm", qty:"3", usd:"10-16 ea",
+    src:"OpenBuilds or clone.",
+    note:"2 carry the rail ends, 1 is the pen carriage. Verify which grid holes are actually present - vendors differ on that, not on the 20 mm pitch."},
+
+  vwheel: {n:"V-wheel kit", spec:"Delrin/POM wheel + 2 bearings + precision spacer",
+    dim:"Ø24 mm outer", qty:"12 (+6 eccentric spacers)", usd:"2-4 ea",
+    src:"OpenBuilds or clone. Buy eccentric spacers with them.",
+    note:"Eccentrics are how you set wheel preload. Snug enough not to rattle, loose enough to roll by hand."},
+
+  rod: {n:"Guide rods", spec:"Hardened / ground steel round bar",
+    dim:"Ø8 mm × 60 mm", qty:"2", usd:"3-6",
+    src:"Offcut from any 3D printer smooth rod.",
+    note:"The shuttle slides on these. Printed plain bores are fine at this load - no linear bearings needed."},
+
+  spring: {n:"Compression springs", spec:"Light rate, ~0.2 N/mm",
+    dim:"Ø10 mm OD · 20 mm free length · must clear an 8 mm rod", qty:"2", usd:"2-5",
+    src:"Hardware assortment box.",
+    note:"TWO, one per rod - a single centre spring cocks the shuttle and it binds. Rate sets pen pressure: 0.2 N/mm at 15 mm compression gives ~3 N, which is about right."},
+
+  servo: {n:"SG90 micro servo", spec:"9 g, ~1.8 kg·cm, 5 V PWM",
+    dim:"23 × 12.4 × 22.6 mm · tab span 32.2 mm", qty:"1 (+2 spare)", usd:"2-4",
+    src:"Anywhere.",
+    note:"Only needs two positions. Give it its own 5 V if the Uno browns out when the pen lifts."},
+
+  pen: {n:"Sharpie Fine Point, black", spec:"Permanent marker",
+    dim:"~12 mm barrel — NOT the 17 mm the CAD currently assumes", qty:"pack of 12", usd:"8-15",
+    src:"Any stationer.",
+    note:"Ink volume is what matters over a 2 hour plot. Budget a feed-hold swap around 90 min. Test one against a long plot before the event so you know when it fades."},
+
+  printed: {n:"3D printed parts", spec:"PETG, 0.2 mm layers, 4 perimeters, 40% infill",
+    dim:"Largest part 90 × 76 × 68 mm - fits any 180×180 bed", qty:"~300 g filament", usd:"6-12",
+    src:"Club printer. Source in cad/*.scad.",
+    note:"PETG not PLA. PLA creeps under sustained load and this sits in a warm room holding a spring for hours."},
+
+  electronics: {n:"Control enclosure", spec:"Vented box holding the 3 drivers, PSU, Arduino",
+    dim:"~300 × 210 × 130 mm", qty:"1", usd:"15-30",
+    src:"Project box, or laser-cut.",
+    note:"VENTED, not sealed. Three TB6600s and three NEMA 23s running 2 hours continuous put out real heat."},
+
+  hardware: {n:"Fasteners and brackets", spec:"M5 T-nuts, M5 bolts 8/10/20 mm, 90° corner brackets",
+    dim:"M5 throughout", qty:"100 T-nuts, 100 bolts, 12 brackets", usd:"20-35",
+    src:"Same extrusion supplier.",
+    note:"Buy more T-nuts than you think. Everyone runs out of T-nuts."}
+};
+var PART_ORDER = ["board","rail2040","frame2020","base","stiffener","motor","driver","psu",
+                  "control","pulley","idler","belt","gantryplate","vwheel","rod","spring",
+                  "servo","pen","printed","electronics","hardware"];
+
+/* ======================= the drawing ======================= */
+/* four ink layers. black lays down the border and registration marks,
+   the colours are rose curves and a lissajous - what a pen plotter
+   actually looks good drawing.                                        */
+function buildLayers(){
+  /* One ink, so tone comes from hatch DENSITY. Four passes at different
+     angles, each masked to the regions darker than its threshold - which is
+     how real single-colour plotter work gets its midtones.                */
+  var W = C.workW, H = C.workH;
+
+  /* the image being drawn, as a brightness field in 0..1 (1 = white) */
+  function bright(x, y){
+    var u = x/W, v = y/H;
+    var d1 = Math.hypot(u-0.42, (v-0.44)*1.15);
+    var d2 = Math.hypot(u-0.63, (v-0.60)*0.90);
+    var f  = Math.min(1, d1*2.1) * 0.65 + Math.min(1, d2*2.6) * 0.35;
+    f += 0.13 * Math.sin(u*13.0 + v*7.0);            /* texture */
+    f += 0.10 * Math.sin((u+v)*22.0);
+    var vig = 1 - 0.35*Math.hypot(u-0.5, v-0.5);
+    return Math.max(0, Math.min(1, f/vig));
+  }
+
+  var paths = [];
+
+  /* outline of the form, so the shape reads before the tone fills in */
+  for (var ring = 0; ring < 2; ring++){
+    var pts = [], ok = true;
+    for (var i = 0; i <= 240; i++){
+      var t = i/240*Math.PI*2;
+      var rr = 0.30 - ring*0.055;
+      var x = W*(0.42 + rr*Math.cos(t)*1.05);
+      var y = H*(0.44 + rr*Math.sin(t)*1.15);
+      pts.push([x, y]);
+    }
+    if (ok) paths.push(pts);
+  }
+
+  /* hatch passes: angle, tone threshold, line spacing (mm) */
+  var PASSES = [
+    {ang:  20, thr: 0.78, gap: 11},
+    {ang: 110, thr: 0.56, gap: 11},
+    {ang:  65, thr: 0.36, gap: 13},
+    {ang: 155, thr: 0.19, gap: 15}
+  ];
+  var diag = Math.hypot(W, H);
+  PASSES.forEach(function(P){
+    var ca = Math.cos(P.ang*Math.PI/180), sa = Math.sin(P.ang*Math.PI/180);
+    for (var off = -diag/2; off <= diag/2; off += P.gap){
+      var run = null;
+      for (var t = -diag/2; t <= diag/2; t += 3.2){
+        var x = W/2 + ca*t - sa*off;
+        var y = H/2 + sa*t + ca*off;
+        var inside = (x > 8 && x < W-8 && y > 8 && y < H-8) && bright(x,y) < P.thr;
+        if (inside){
+          if (!run) run = [[x,y]]; else run.push([x,y]);
+        } else if (run){
+          if (run.length > 2) paths.push(run);
+          run = null;
+        }
+      }
+      if (run && run.length > 2) paths.push(run);
+    }
+  });
+  return [paths];          /* a single ink layer */
+}
+
+/* ---- flatten into a timed move list ---- */
+/* op: 0 travel, 1 draw, 2 rack move (pen change) */
+var moves = [], total = 0, layerStart = [];
+(function(){
+  var layers = buildLayers();
+  var cur = {x:SLOT_X[0], y:RACK_Y + 150, z:C.penUpZ};
+  var held = -1;
+
+  function push(x,y,z,op,ink){
+    var d = Math.hypot(x-cur.x, y-cur.y) + Math.abs(z-cur.z);
+    var feed = (op===1) ? C.drawFeed : C.travelFeed;
+    var dur = d / (feed/60);
+    if (d < 0.001) dur = 0.02;
+    moves.push({x:x,y:y,z:z,op:op,ink:ink,t0:total,dur:dur,
+                fx:cur.x,fy:cur.y,fz:cur.z, held:held});
+    total += dur; cur = {x:x,y:y,z:z};
+  }
+
+  /* the pen is fitted by hand before the run - one move to collect it */
+  layerStart.push(0);
+  push(SLOT_X[0], RACK_Y + 150, C.penUpZ, 2, -1);
+  push(SLOT_X[0], RACK_Y,       C.penUpZ, 2, -1);
+  moves[moves.length-1].grab = 0;
+  held = 0;
+  push(SLOT_X[0], RACK_Y + 150, C.penUpZ, 2, 0);
+
+  var paths = layers[0];
+  for (var pi = 0; pi < paths.length; pi++){
+    var pts = paths[pi];
+    push(sx(pts[0][0]), sy(pts[0][1]), C.penUpZ, 0, 0);
+    push(sx(pts[0][0]), sy(pts[0][1]), 0, 0, 0);
+    for (var k = 1; k < pts.length; k++) push(sx(pts[k][0]), sy(pts[k][1]), 0, 1, 0);
+    push(sx(pts[pts.length-1][0]), sy(pts[pts.length-1][1]), C.penUpZ, 0, 0);
+  }
+  layerStart.push(total);
+})();
+
+/* ---- ink laid on the board ---- */
+var inkLines = INKS.map(function(ink){
+  var cap = 0;
+  moves.forEach(function(m){ if (m.op===1) cap++; });
+  var g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array((cap+8)*6), 3));
+  g.setDrawRange(0,0);
+  var l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({color:ink.hex}));
+  l.frustumCulled = false; rig.add(l);
+  return {line:l, n:0, arr:g.attributes.position.array, geo:g};
+});
+function inkTo(li, ax,ay, bx,by){
+  var s = inkLines[li], i = s.n*6;
+  if (i+6 > s.arr.length) return;
+  s.arr[i]=ax; s.arr[i+1]=ay; s.arr[i+2]=-3;
+  s.arr[i+3]=bx; s.arr[i+4]=by; s.arr[i+5]=-3;
+  s.n++; s.geo.setDrawRange(0, s.n*2);
+  s.geo.attributes.position.needsUpdate = true;
+  s.geo.computeBoundingSphere();
+}
+function clearInk(){
+  inkLines.forEach(function(s){ s.n=0; s.geo.setDrawRange(0,0); });
+}
+
+/* ======================= playback ======================= */
+var clock = 0, playing = false, speed = 60, mi = 0;
+var $ = function(id){ return document.getElementById(id); };
+
+function applyAt(time){
+  /* rebuild from scratch when scrubbing backwards */
+  if (time < clock){ clearInk(); mi = 0; }
+  clock = time;
+  var m = null;
+  while (mi < moves.length && moves[mi].t0 + moves[mi].dur <= clock){
+    var f = moves[mi];
+    if (f.op === 1) inkTo(f.ink, f.fx, f.fy, f.x, f.y);
+    if (f.release !== undefined){
+      var pk = pucks[f.release];
+      rackG.add(pk); pk.position.set(SLOT_X[f.release], RACK_Y, RACK_Z);
+      pk.rotation.set(0,0,0);
+    }
+    if (f.grab !== undefined){
+      heldGroup.add(pucks[f.grab]);
+      pucks[f.grab].position.set(0,0,0);
+    }
+    mi++;
+  }
+  m = moves[Math.min(mi, moves.length-1)];
+  var u = m.dur > 0 ? Math.min(1, Math.max(0,(clock - m.t0)/m.dur)) : 1;
+  var px = m.fx + (m.x-m.fx)*u, py = m.fy + (m.y-m.fy)*u, pz = m.fz + (m.z-m.fz)*u;
+
+  carriage.position.set(px, 0, 0);
+  gantry.position.set(0, py, 0);
+  shuttle.position.set(0, 0, RAIL_Z + pz);
+  updateMechanism(px, py, pz);
+
+  if (m.op === 1 && u > 0){
+    var lx = m.fx + (m.x-m.fx)*Math.max(0,u-0.06);
+    var ly = m.fy + (m.y-m.fy)*Math.max(0,u-0.06);
+    inkTo(m.ink, lx, ly, px, py);
+    inkLines[m.ink].n--;   /* provisional segment, redrawn next frame */
+  }
+
+  /* readout */
+  $("px").textContent = Math.round(px - WORK_LEFT);
+  $("py").textContent = Math.round(WORK_TOP - py);
+  var ink = (m.op === 2) ? null : INKS[m.ink];
+  $("pc").textContent = ink ? ink.name : "changing";
+  if (ink) $("pc").style.color = ink.css; else $("pc").style.color = "#5AC8D8";
+  var pct = clock/total;
+  $("pp").textContent = Math.round(pct*100) + "%";
+  $("fill").style.width = (pct*100) + "%";
+  $("knob").style.left = (pct*100) + "%";
+  $("track").setAttribute("aria-valuenow", Math.round(pct*100));
+  $("etat").textContent = fmt(total - clock) + " left";
+
+  $("pzs").textContent = (pz < 0.5) ? "down" : (pz > C.penUpZ - 0.5 ? "up" : pz.toFixed(1) + " mm");
+  $("pzs").style.color = (pz < 0.5) ? "#E8B23C" : "#8B979E";
+  $("mvn").textContent = (mi + 1) + " / " + moves.length;
+  $("mvd").textContent = describe(m);
+
+  var dot = $("dot");
+  dot.className = "dot" + (!playing ? "" : (m.op===2 ? " swap on" : " on"));
+  $("st").textContent = !playing ? "Paused" : (m.op===2 ? "Changing pen" : (m.op===1 ? "Drawing" : "Travelling"));
+}
+function describe(m){
+  if (m.grab    !== undefined) return "Pick up " + INKS[m.grab].name;
+  if (m.release !== undefined) return "Put back " + INKS[m.release].name;
+  if (m.op === 2) return "Move at the rack";
+  if (m.op === 1) return "Draw \u2014 " + INKS[m.ink].name;
+  if (Math.abs(m.z - m.fz) > 0.01) return (m.z > m.fz) ? "Servo lifts pen" : "Spring drops pen";
+  return "Travel, pen up";
+}
+function fmt(s){
+  var h = Math.floor(s/3600), mm = Math.floor(s%3600/60);
+  return h ? (h + "h " + mm + "m") : (mm + "m " + Math.floor(s%60) + "s");
+}
+
+/* segment ribbon under the scrubber, one block per ink */
+(function(){
+  var wrap = $("segs");
+  var d = document.createElement("div");
+  d.style.background = INKS[0].css;
+  d.style.flex = "1";
+  wrap.appendChild(d);
+})();
+
+/* ======================= controls ======================= */
+/* One scheme, always live. No modes, no pointer lock:
+     drag  = look around      WASD = walk
+     wheel = zoom             space / shift = up / down            */
+var sph = {th: -0.40, ph: 1.25, rad: 5000};
+var target = new THREE.Vector3(170, 1120, 0);
+var goal = null, follow = null;
+var HOME = {th:-0.40, ph:1.25, rad:5000, t:new THREE.Vector3(170,1120,0)};
+
+function place(){
+  camera.position.set(
+    target.x + sph.rad*Math.sin(sph.ph)*Math.sin(sph.th),
+    target.y + sph.rad*Math.cos(sph.ph),
+    target.z + sph.rad*Math.sin(sph.ph)*Math.cos(sph.th));
+  camera.lookAt(target);
+}
+
+rig.updateMatrixWorld(true);
+function worldOf(x,y,z){ return rig.localToWorld(new THREE.Vector3(x,y,z)); }
+var VIEWS = {
+  machine:  function(){ return {th:-0.40, ph:1.25, rad:5000, t:new THREE.Vector3(170,1120,0)}; },
+  rack:     function(){ return {th:-0.95, ph:1.46, rad:760,  t:worldOf(-60, RACK_Y + 10, RACK_Z - 30)}; },
+  carriage: function(){ return {th:1.15,  ph:1.32, rad:820,  t:null, follow:carriage}; },
+  front:    function(){ return {th:0, ph:Math.PI/2 - C.lean, rad:3400, t:new THREE.Vector3(0,1330,0)}; },
+  eye:      function(){ return {th:0.06, ph:Math.PI/2 + 0.02, rad:2600, t:new THREE.Vector3(0,C.eyeLevel,0)}; }
+};
+function goTo(name){
+  var v = VIEWS[name]();
+  follow = v.follow || null;
+  goal = {th:v.th, ph:v.ph, rad:v.rad, t:v.t ? v.t.clone() : null};
+}
+
+/* ---- keyboard walk. Always on. ---- */
+var keys = {};
+var WALK = {KeyW:1,KeyA:1,KeyS:1,KeyD:1,Space:1,ShiftLeft:1,ShiftRight:1,KeyQ:1,KeyE:1};
+function typing(){
+  var t = document.activeElement;
+  return t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+}
+addEventListener("keydown", function(e){
+  if (typing() || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.code === "KeyR"){ goTo("machine"); e.preventDefault(); return; }
+  if (WALK[e.code]){ keys[e.code] = true; e.preventDefault(); }
+});
+addEventListener("keyup", function(e){ delete keys[e.code]; });
+addEventListener("blur", function(){ keys = {}; });
+
+function stepWalk(dt){
+  if (!(keys.KeyW||keys.KeyS||keys.KeyA||keys.KeyD||
+        keys.Space||keys.KeyE||keys.ShiftLeft||keys.ShiftRight||keys.KeyQ)) return;
+  var d = Math.min(2600, Math.max(200, sph.rad*0.24)) * dt;   /* zoomed in = finer steps */
+  var f = new THREE.Vector3(); camera.getWorldDirection(f);
+  f.y = 0;
+  if (f.lengthSq() < 1e-8) f.set(0,0,-1);
+  f.normalize();
+  var r = new THREE.Vector3().crossVectors(f, new THREE.Vector3(0,1,0)).normalize();
+  if (keys.KeyW) target.addScaledVector(f,  d);
+  if (keys.KeyS) target.addScaledVector(f, -d);
+  if (keys.KeyD) target.addScaledVector(r,  d);
+  if (keys.KeyA) target.addScaledVector(r, -d);
+  if (keys.Space || keys.KeyE) target.y += d;
+  if (keys.ShiftLeft || keys.ShiftRight || keys.KeyQ) target.y -= d;
+  /* stay inside a box around the machine - getting lost is not a feature */
+  target.x = Math.max(-4500, Math.min(4500, target.x));
+  target.z = Math.max(-4500, Math.min(4500, target.z));
+  target.y = Math.max(10,   Math.min(3600, target.y));
+  goal = null; follow = null;
+  place();
+}
+
+/* ---- mouse ---- */
+var drag = null;
+cv.addEventListener("pointerdown", function(e){
+  drag = {x:e.clientX, y:e.clientY, pan:(e.button === 2 || e.shiftKey), moved:0};
+  cv.setPointerCapture(e.pointerId);
+  goal = null; follow = null;
+});
+cv.addEventListener("pointermove", function(e){
+  if (!drag) return;
+  var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  drag.moved += Math.abs(dx) + Math.abs(dy);
+  drag.x = e.clientX; drag.y = e.clientY;
+  if (drag.pan){
+    var sc = sph.rad*0.0011;
+    var right = new THREE.Vector3().setFromMatrixColumn(camera.matrix,0);
+    var up    = new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);
+    target.addScaledVector(right, -dx*sc).addScaledVector(up, dy*sc);
+    target.x = Math.max(-4500, Math.min(4500, target.x));
+    target.z = Math.max(-4500, Math.min(4500, target.z));
+    target.y = Math.max(10,   Math.min(3600, target.y));
+  } else {
+    sph.th -= dx*0.0055;
+    sph.ph = Math.max(0.08, Math.min(2.96, sph.ph - dy*0.0048));
+  }
+  place();
+});
+addEventListener("pointerup", function(){ setTimeout(function(){ drag = null; }, 0); });
+cv.addEventListener("contextmenu", function(e){ e.preventDefault(); });
+cv.addEventListener("wheel", function(e){
+  e.preventDefault();
+  sph.rad = Math.max(160, Math.min(16000, sph.rad * (1 + Math.sign(e.deltaY)*0.12)));
+  goal = null;
+  place();
+}, {passive:false});
+
+/* ---- transport ---- */
+function setPlay(p){
+  playing = p;
+  $("pico").innerHTML = p ? '<rect x="2.5" y="1.5" width="4" height="13"/><rect x="9.5" y="1.5" width="4" height="13"/>'
+                          : '<path d="M3 1.5v13l11-6.5z"/>';
+  $("play").setAttribute("aria-label", p ? "Pause" : "Play");
+}
+function stepBy(n){
+  setPlay(false);
+  var i = Math.max(0, Math.min(moves.length - 1, mi + n));
+  applyAt(moves[i].t0 + moves[i].dur * 0.985);
+}
+$("prev").onclick = function(){ stepBy(-1); };
+$("next").onclick = function(){ stepBy(1); };
+addEventListener("keydown", function(e){
+  if (typing() || e.metaKey || e.ctrlKey) return;
+  if (e.code === "ArrowRight"){ stepBy(e.shiftKey ? 25 : 1); e.preventDefault(); }
+  if (e.code === "ArrowLeft"){  stepBy(e.shiftKey ? -25 : -1); e.preventDefault(); }
+  if (e.code === "KeyP"){ setPlay(!playing); e.preventDefault(); }
+});
+$("play").onclick = function(){ setPlay(!playing); };
+$("rew").onclick  = function(){ clearInk(); mi = 0; clock = 0; applyAt(0); };
+document.querySelectorAll(".spd button").forEach(function(b){
+  b.onclick = function(){
+    speed = +b.dataset.s;
+    document.querySelectorAll(".spd button").forEach(function(o){
+      o.setAttribute("aria-pressed", String(o === b)); });
+  };
+});
+function scrubTo(e){
+  var r = $("track").getBoundingClientRect();
+  applyAt(Math.max(0, Math.min(1,(e.clientX-r.left)/r.width)) * total);
+}
+$("track").addEventListener("pointerdown", function(e){
+  scrubTo(e);
+  try { $("track").setPointerCapture(e.pointerId); } catch(err){}
+  $("track").onpointermove = function(ev){ if (ev.buttons) scrubTo(ev); };
+});
+$("track").addEventListener("pointerup", function(){ $("track").onpointermove = null; });
+
+/* ---- toggles + views ---- */
+function tog(id, fn, init){
+  var b = $(id);
+  b.onclick = function(){
+    var v = b.getAttribute("aria-pressed") !== "true";
+    b.setAttribute("aria-pressed", String(v)); fn(v);
+  };
+  fn(init);
+}
+var spinning = false;
+tog("t-belt",  function(v){ beltG.visible  = v; }, true);
+tog("t-rack",  function(v){ rackG.visible  = v; }, true);
+tog("t-elec",  function(v){ baseG.visible  = v; }, true);
+tog("t-zone",  function(v){ zoneG.visible  = v; }, false);
+tog("t-human", function(v){ scaleG.visible = v; }, true);
+tog("t-spin",  function(v){ spinning = v; }, false);
+
+document.querySelectorAll(".views button").forEach(function(b){
+  b.onclick = function(){ goTo(b.dataset.v); };
+});
+$("expo").addEventListener("input", function(){
+  var v = +this.value / 100;
+  renderer.toneMappingExposure = v;
+  $("expoval").textContent = v.toFixed(2) + "\u00D7";
+});
+$("legtoggle").onclick = function(){
+  var l = $("legend"), hid = l.classList.toggle("hidden");
+  $("legtoggle").textContent = hid ? "Show keys" : "Hide keys";
+};
+$("burger").onclick = function(){ $("rail").classList.toggle("open"); };
+
+
+/* ================= will it actually work =================
+   Hand calculations, not FEA. Formulas shown so they can be checked.      */
+var ENG = (function(){
+  var E     = 69000;                 /* N/mm^2, aluminium 6063 */
+  var I     = 33000;                 /* mm^4, published V-Slot 2040 strong axis (3.3 cm^4) */
+  var L     = C.frameW;              /* 1800 mm span */
+  var wRail = 0.9 * 9.81 / 1000;     /* N/mm, 0.9 kg/m */
+  var Pcar  = 0.55 * 9.81;           /* N, carriage + pen + servo */
+
+  /* stiffener: 30x3 bar bolted ~20 mm off the neutral axis -> A*d^2 */
+  var Iadd  = (30*3) * 20 * 20;
+
+  function sag(Ieff){
+    return 5*wRail*Math.pow(L,4)/(384*E*Ieff)      /* own weight, UDL   */
+         + Pcar*Math.pow(L,3)/(48*E*Ieff);         /* carriage, central */
+  }
+  var sagBare = sag(I), sagStiff = sag(I + Iadd);
+
+  /* Y axis: two motors hold the whole moving assembly against gravity */
+  var mMove = 1.62 + 0.44 + 1.00 + 0.40 + 0.30 + 0.20;   /* kg, itemised */
+  var Fy    = mMove * 9.81;
+  var rP    = 20 * 2 / (2*Math.PI) / 1000;               /* pulley pitch radius, m */
+  var Tneed = (Fy/2) * rP;                               /* N.m per motor */
+  var Thold = 1.9;
+  var Tspeed = Thold * 0.30;        /* steppers keep roughly a third at speed */
+
+  /* tipping: CoG of board + machine over the A-frame base */
+  var mTotal = 22 + mMove + 6;      /* board + moving + frame/base, kg */
+  var cogH   = 1200;                /* mm, roughly mid board */
+  var baseBack = 820, baseFront = 430;
+  var tipBack  = Math.atan(baseBack / cogH) * 180/Math.PI;
+
+  return {sagBare:sagBare, sagStiff:sagStiff, mMove:mMove, Tneed:Tneed,
+          Thold:Thold, Tspeed:Tspeed, margin:Tspeed/Tneed, mTotal:mTotal,
+          tipBack:tipBack};
+})();
+
+(function renderEng(){
+  function row(k, v, cls){
+    return '<dt>' + k + '</dt><dd' + (cls ? ' class="'+cls+'"' : '') + '>' + v + '</dd>';
+  }
+  var h = '<dl class="eng">';
+  h += row("Rail sag, bare 2040", ENG.sagBare.toFixed(2) + " mm", ENG.sagBare < 1.5 ? "ok" : "warn2");
+  h += row("Rail sag, + stiffener", ENG.sagStiff.toFixed(2) + " mm", "ok");
+  h += row("Moving mass", ENG.mMove.toFixed(1) + " kg");
+  h += row("Torque needed / motor", ENG.Tneed.toFixed(3) + " N·m");
+  h += row("Available at speed", ENG.Tspeed.toFixed(2) + " N·m");
+  h += row("Torque margin", ENG.margin.toFixed(1) + "×", ENG.margin > 2 ? "ok" : "warn2");
+  h += row("Total mass", ENG.mTotal.toFixed(0) + " kg");
+  h += row("Tips backward at", ENG.tipBack.toFixed(0) + "°", ENG.tipBack > 25 ? "ok" : "warn2");
+  h += '</dl>';
+  h += '<p class="note" style="margin-top:11px">Sag is <b>' + ENG.sagBare.toFixed(2) +
+       ' mm</b> over 1800 mm bare &mdash; a horizontal line bows by that much at centre, ' +
+       'invisible at arm’s length on a 1.6 m drawing. The $8 flat bar takes it to <b>' +
+       ENG.sagStiff.toFixed(2) + ' mm</b>, but only if you bolt it every ~150 mm so it acts ' +
+       'compositely. Bolted at the ends only it does nothing.</p>';
+  h += '<p class="note">Torque margin is <b>' + ENG.margin.toFixed(1) + '×</b> against the ' +
+       'third of holding torque a stepper keeps at speed. Worth knowing: NEMA 23 is chosen for ' +
+       'that speed headroom, not for raw holding force &mdash; on holding torque alone the margin ' +
+       'is over 15× and a NEMA 17 would look fine on paper, then lose steps in motion.</p>';
+  h += '<p class="note">Hand calculations, not FEA. Beam formulas are standard ' +
+       '(5wL⁴/384EI and PL³/48EI); the second moment of area is the published V-Slot ' +
+       'figure and is the number most worth checking against your actual supplier.</p>';
+  document.getElementById("eng").innerHTML = h;
+})();
+
+/* ================= parts: list, select, highlight, focus ================= */
+var selected = null, savedMats = [];
+
+function renderPartList(){
+  var h = "";
+  PART_ORDER.forEach(function(id){
+    var P = PARTS[id];
+    h += '<div class="prow" data-p="' + id + '"><span>' + P.n + '</span><i>' +
+         P.qty + ' · $' + P.usd + '</i></div>';
+  });
+  document.getElementById("plist").innerHTML = h;
+  document.querySelectorAll(".prow").forEach(function(r){
+    r.onclick = function(){ selectPart(r.dataset.p); };
+  });
+  document.getElementById("ptotal").innerHTML =
+    "Whole machine roughly <b>$520-830</b>, of which the whiteboard is $180-260. " +
+    "Everything except the board: about <b>$340-570</b>.";
+}
+
+function focusPart(id){
+  var ms = PARTMESH[id] || [];
+  if (!ms.length) return;
+  var bb = new THREE.Box3();
+  ms.forEach(function(m){ m.updateWorldMatrix(true, false); bb.expandByObject(m); });
+  if (bb.isEmpty()) return;
+  var c = bb.getCenter(new THREE.Vector3()), sz = bb.getSize(new THREE.Vector3());
+  var r = Math.max(sz.x, sz.y, sz.z, 120);
+  follow = null;
+  goal = {th: sph.th, ph: sph.ph, rad: Math.max(430, Math.min(6000, r * 2.3)), t: c};
+}
+
+function selectPart(id){
+  if (selected && PARTMESH[selected])
+    PARTMESH[selected].forEach(function(m, i){ if (savedMats[i]) m.material = savedMats[i]; });
+  savedMats = [];
+  selected = (id === selected) ? null : id;
+
+  document.querySelectorAll(".prow").forEach(function(r){
+    r.classList.toggle("on", r.dataset.p === selected);
+  });
+
+  var box = document.getElementById("pinfo");
+  if (!selected){ box.hidden = true; return; }
+
+  (PARTMESH[selected] || []).forEach(function(m){
+    savedMats.push(m.material); m.material = M.hl;
+  });
+
+  var P = PARTS[selected];
+  box.hidden = false;
+  box.innerHTML =
+    '<h3>' + P.n + '</h3>' +
+    '<div class="k">Specification</div><div class="v">' + P.spec + '</div>' +
+    '<div class="k">Dimensions</div><div class="v mono">' + P.dim + '</div>' +
+    '<div class="k">Quantity / price</div><div class="v mono">' + P.qty + ' · $' + P.usd + '</div>' +
+    '<div class="k">Where</div><div class="v dim">' + P.src + '</div>' +
+    '<div class="k">Watch out</div><div class="v dim">' + P.note + '</div>';
+  focusPart(selected);
+  var rail = document.getElementById("rail");
+  if (rail && !document.getElementById("burger").offsetParent) box.scrollIntoView({block:"nearest"});
+}
+
+/* click a part in the 3D view */
+var ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+cv.addEventListener("pointerup", function(e){
+  if (!drag || drag.moved > 5) return;
+  ndc.x = (e.clientX / innerWidth) * 2 - 1;
+  ndc.y = -(e.clientY / innerHeight) * 2 + 1;
+  ray.setFromCamera(ndc, camera);
+  var hits = ray.intersectObjects(scene.children, true);
+  for (var i = 0; i < hits.length; i++){
+    var o = hits[i].object;
+    while (o && !o.userData.part) o = o.parent;
+    if (o && o.userData.part){ selectPart(o.userData.part); return; }
+  }
+  selectPart(null);
+});
+
+renderPartList();
+
+/* ======================= loop ======================= */
+function resize(){
+  var w = innerWidth, h = innerHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize);
+resize(); place();
+
+var prev = performance.now();
+function tick(now){
+  var dt = Math.min(0.1,(now-prev)/1000); prev = now;
+  stepWalk(dt);
+  if (follow){
+    var wp = new THREE.Vector3(); follow.getWorldPosition(wp);
+    target.lerp(wp, RM ? 1 : 0.12);
+    if (goal){
+      var kf = RM ? 1 : 1 - Math.pow(0.0025, dt);
+      sph.th  += (goal.th  - sph.th)*kf;
+      sph.ph  += (goal.ph  - sph.ph)*kf;
+      sph.rad += (goal.rad - sph.rad)*kf;
+    }
+    place();
+  } else if (goal){
+    var k = RM ? 1 : 1 - Math.pow(0.0025, dt);
+    sph.th += (goal.th - sph.th)*k;
+    sph.ph += (goal.ph - sph.ph)*k;
+    sph.rad += (goal.rad - sph.rad)*k;
+    if (goal.t) target.lerp(goal.t, k);
+    if (Math.abs(goal.rad - sph.rad) < 1.5) goal = null;
+    place();
+  }
+  if (spinning && !drag && !RM){ sph.th += dt*0.09; place(); }
+  if (playing){
+    var t = clock + dt*speed;
+    if (t >= total){ t = total; setPlay(false); }
+    applyAt(t);
+  }
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+applyAt(0);
+$("etat").textContent = fmt(total) + " total";
+requestAnimationFrame(tick);
+console.log("[ArtBot] scene ready \u2014 THREE r" + THREE.REVISION +
+            ", " + moves.length + " moves, " + pucks.length + " pens");
+} catch (err) {
+  fatal((err && err.message) ? err.message : String(err));
+  if (err && err.stack) console.error(err.stack);
+}
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1184 @@
+<title>ArtBot Rig Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{
+    --void:#0B0E10; --deep:#12171A;
+    --panel:rgba(15,20,23,.88); --panel-solid:#0F1417;
+    --line:#283238; --line-soft:#1A2226;
+    --txt:#DEE5E8; --dim:#8B979E; --faint:#5A666D;
+    --signal:#5AC8D8; --run:#E8B23C;
+    --k:#4A5359; --r:#D8392B; --b:#3B72D8; --g:#22A05F;
+    --sans:"Barlow",system-ui,sans-serif;
+    --cond:"Barlow Condensed","Barlow",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  }
+  [hidden]{display:none !important}
+  img{max-width:100%}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--void);color:var(--txt);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  canvas{display:block;position:fixed;inset:0}
+
+  .lbl{font-family:var(--cond);font-weight:600;text-transform:uppercase;letter-spacing:.14em;
+       font-size:11px;color:var(--faint)}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  /* ---------- panels ---------- */
+  .panel{position:fixed;background:var(--panel);border:1px solid var(--line);
+         backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+
+  #rail{top:16px;left:16px;width:294px;max-height:calc(100vh - 132px);overflow-y:auto;
+        display:flex;flex-direction:column}
+  #rail::-webkit-scrollbar{width:8px}
+  #rail::-webkit-scrollbar-thumb{background:var(--line);border:2px solid var(--panel-solid)}
+
+  .head{padding:16px 18px 14px;border-bottom:1px solid var(--line)}
+  .head h1{margin:0;font-family:var(--cond);font-weight:600;font-size:26px;letter-spacing:.02em;
+           line-height:1;text-wrap:balance}
+  .head p{margin:7px 0 0;font-size:12.5px;line-height:1.5;color:var(--dim)}
+  .tag{display:inline-block;margin-top:11px;padding:3px 8px;border:1px solid var(--line);
+       font-family:var(--cond);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+       color:var(--signal)}
+
+  .sec{padding:15px 18px;border-bottom:1px solid var(--line-soft)}
+  .sec:last-child{border-bottom:none}
+  .sec > .lbl{display:block;margin-bottom:11px}
+
+  .spec{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12.5px}
+  .spec dt{color:var(--faint)}
+  .spec dd{margin:0;text-align:right;font-family:var(--mono);font-size:11.5px;color:var(--txt)}
+
+  .sw{display:flex;align-items:center;gap:10px;padding:6px 0;cursor:pointer;font-size:13px;
+      color:var(--dim);user-select:none;background:none;border:none;width:100%;text-align:left;
+      font-family:var(--sans)}
+  .sw:hover{color:var(--txt)}
+  .sw:focus-visible{outline:1px solid var(--signal);outline-offset:3px}
+  .box{width:13px;height:13px;border:1px solid var(--line);flex:none;position:relative}
+  .sw[aria-pressed="true"] .box{border-color:var(--signal);background:var(--signal)}
+  .sw[aria-pressed="true"] .box::after{content:"";position:absolute;inset:3px;background:var(--panel-solid)}
+  .sw[aria-pressed="true"]{color:var(--txt)}
+
+  .rng{width:100%;accent-color:var(--signal);margin:2px 0 4px}
+  .rngrow{display:flex;justify-content:space-between;font-family:var(--cond);font-size:10.5px;
+          letter-spacing:.11em;text-transform:uppercase;color:var(--faint)}
+  .rngrow b{font-family:var(--mono);font-size:11px;color:var(--signal);font-weight:400;
+            letter-spacing:0}
+  .part{display:flex;align-items:baseline;gap:9px;padding:4px 0;font-size:12.5px;color:var(--dim)}
+  .views{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+  .views button{padding:8px 6px;border:1px solid var(--line);background:transparent;color:var(--dim);
+                font-family:var(--cond);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+                cursor:pointer}
+  .views button:hover{color:var(--txt);border-color:var(--signal)}
+  .views button:focus-visible{outline:1px solid var(--signal);outline-offset:2px}
+  .chip{width:9px;height:9px;flex:none;transform:translateY(-1px)}
+  .part b{font-weight:500;color:var(--txt)}
+
+  .note{font-size:12px;line-height:1.55;color:var(--dim);margin:0}
+  .note + .note{margin-top:9px}
+  .warn{border-left:2px solid var(--run);padding-left:11px}
+  .warn .lbl{color:var(--run);display:block;margin-bottom:5px}
+
+  /* ---------- live readout ---------- */
+  #hud{top:16px;right:16px;width:210px;padding:14px 16px}
+  .row{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0}
+  .row span:first-child{font-family:var(--cond);font-size:11px;letter-spacing:.12em;
+                        text-transform:uppercase;color:var(--faint)}
+  .row span:last-child{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+  .mv{margin-top:9px;padding-top:9px;border-top:1px solid var(--line-soft);
+      display:flex;flex-direction:column;gap:3px}
+  #mvn{font-family:var(--mono);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+  #mvd{font-family:var(--cond);font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;
+       color:var(--txt)}
+  .state{margin-top:11px;padding-top:11px;border-top:1px solid var(--line-soft);
+         display:flex;align-items:center;gap:8px;font-family:var(--cond);font-size:12px;
+         letter-spacing:.1em;text-transform:uppercase}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
+  .dot.on{background:var(--run);box-shadow:0 0 9px var(--run)}
+  .dot.swap{background:var(--signal);box-shadow:0 0 9px var(--signal)}
+
+  /* ---------- transport ---------- */
+  #bar{left:16px;right:16px;bottom:16px;height:64px;display:flex;align-items:center;
+       gap:16px;padding:0 16px}
+  .btn{width:38px;height:38px;flex:none;border:1px solid var(--line);background:transparent;
+       color:var(--txt);cursor:pointer;display:grid;place-items:center;padding:0}
+  .btn:hover{border-color:var(--signal);color:var(--signal)}
+  .btn:focus-visible{outline:1px solid var(--signal);outline-offset:2px}
+  .btn svg{width:14px;height:14px;fill:currentColor}
+
+  #track{flex:1;height:34px;position:relative;cursor:pointer;min-width:60px}
+  #track::before{content:"";position:absolute;left:0;right:0;top:16px;height:2px;background:var(--line)}
+  #fill{position:absolute;left:0;top:16px;height:2px;background:var(--signal)}
+  #segs{position:absolute;left:0;right:0;top:11px;height:12px;display:flex;gap:1px}
+  #segs div{height:100%;opacity:.5}
+  #knob{position:absolute;top:9px;width:3px;height:16px;background:var(--txt);
+        transform:translateX(-1px);pointer-events:none}
+
+  .spd{display:flex;gap:1px;flex:none}
+  .spd button{padding:7px 10px;border:1px solid var(--line);background:transparent;color:var(--faint);
+              font-family:var(--mono);font-size:11.5px;cursor:pointer}
+  .spd button:hover{color:var(--txt)}
+  .spd button[aria-pressed="true"]{color:var(--void);background:var(--signal);border-color:var(--signal)}
+  .spd button:focus-visible{outline:1px solid var(--signal);outline-offset:2px}
+
+  #eta{flex:none;text-align:right;font-family:var(--mono);font-size:12px;color:var(--dim);
+       font-variant-numeric:tabular-nums;line-height:1.35}
+  #eta b{display:block;color:var(--txt);font-weight:500;font-size:14px}
+
+  #legend{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);display:flex;
+          flex-wrap:wrap;justify-content:center;gap:6px 16px;align-items:center;padding:10px 18px;
+          background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(14px);
+          -webkit-backdrop-filter:blur(14px);z-index:15;max-width:calc(100vw - 380px)}
+  .keys{display:flex;gap:4px;align-items:center}
+  .keys kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--line);
+            padding:3px 6px;color:var(--txt);background:rgba(255,255,255,.04);line-height:1}
+  .keys em{font-style:normal;font-family:var(--cond);font-size:11px;letter-spacing:.11em;
+           text-transform:uppercase;color:var(--faint);margin-left:4px}
+  #legend.hidden{display:none}
+  #legtoggle{position:fixed;right:16px;bottom:96px;z-index:16;padding:8px 12px;
+             background:var(--panel);border:1px solid var(--line);color:var(--faint);
+             font-family:var(--cond);font-size:11px;letter-spacing:.11em;text-transform:uppercase;
+             cursor:pointer;backdrop-filter:blur(14px)}
+  #legtoggle:hover{color:var(--txt);border-color:var(--signal)}
+
+  #fatal{position:fixed;inset:0;z-index:99;display:none;place-items:center;padding:32px;
+         background:var(--void);color:var(--txt)}
+  #fatal:not([hidden]){display:grid}
+  #fatal > div{max-width:560px;border:1px solid var(--run);border-left-width:3px;padding:22px 26px;
+               background:var(--deep)}
+  #fatal h2{margin:0 0 10px;font-family:var(--cond);font-size:22px;font-weight:600;
+            text-transform:uppercase;letter-spacing:.08em;color:var(--run)}
+  #fatal p{margin:0 0 9px;font-size:13.5px;line-height:1.6;color:var(--dim)}
+  #fatal .fx{color:var(--faint);font-size:12.5px}
+  #fatal code{font-family:var(--mono);font-size:12px;color:var(--signal)}
+
+  #burger{display:none}
+
+  @media (max-width:920px){
+    #rail{transform:translateX(-320px);transition:transform .28s ease;z-index:20}
+    #rail.open{transform:none}
+    #burger{display:grid;position:fixed;top:16px;left:16px;z-index:21;width:40px;height:40px;
+            place-items:center;background:var(--panel);border:1px solid var(--line);color:var(--txt);
+            cursor:pointer;backdrop-filter:blur(14px)}
+    #rail.open + #burger{left:326px}
+    #hud{width:150px;padding:11px 13px}
+    #eta{display:none}
+    #legend{max-width:calc(100vw - 32px);gap:5px 11px;padding:8px 12px}
+    #legtoggle{display:none}
+  }
+  @media (max-width:560px){
+    #hud{top:auto;bottom:96px;right:16px}
+    #bar{gap:10px;padding:0 10px}
+    .spd{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #rail{transition:none}
+  }
+</style>
+
+<canvas id="c"></canvas>
+
+<button id="burger" aria-label="Toggle machine panel">
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect y="2" width="16" height="1.6"/><rect y="7.2" width="16" height="1.6"/><rect y="12.4" width="16" height="1.6"/></svg>
+</button>
+
+<aside class="panel" id="rail">
+  <div class="head">
+    <h1>ArtBot</h1>
+    <p>Vertical plotter, 1800 &times; 1200 mm. Built as a live drawing installation &mdash; it draws one large colour piece in front of an audience over about two hours.</p>
+    <span class="tag">Design preview &middot; build 21:33:38</span>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Machine</span>
+    <dl class="spec">
+      <dt>Frame</dt><dd>1800 &times; 1200</dd>
+      <dt>Drawing area</dt><dd>1600 &times; 850</dd>
+      <dt>Fits</dt><dd>A0 landscape</dd>
+      <dt>Motors</dt><dd>3 &times; NEMA 23</dd>
+      <dt>Drivers</dt><dd>3 &times; TB6600</dd>
+      <dt>Supply</dt><dd>24 V &middot; 15 A</dd>
+      <dt>Resolution</dt><dd>80 steps/mm</dd>
+      <dt>Draw feed</dt><dd>3000 mm/min</dd>
+      <dt>Rail standoff</dt><dd>55 mm</dd>
+      <dt>Lean</dt><dd>7&deg;</dd>
+    </dl>
+    <span class="lbl" style="display:block;margin:16px 0 10px">Heights</span>
+    <dl class="spec">
+      <dt>Pen rack</dt><dd>790 mm</dd>
+      <dt>Drawing bottom</dt><dd>940 mm</dd>
+      <dt>Drawing centre</dt><dd>1370 mm</dd>
+      <dt>Drawing top</dt><dd>1810 mm</dd>
+      <dt>Crowd eye level</dt><dd>1475 mm</dd>
+      <dt>Overall</dt><dd>1900 mm</dd>
+    </dl>
+    <p class="note" style="margin-top:11px">Eye level is the NFHS-5 average for Indian adults &mdash; men 165 cm, women 153 cm &mdash; less 11 cm. The drawing centres just below it, which is where the 1448 mm museum hanging standard also lands. Overall height stays under a 2030 mm door, so the built frame can still leave the room.</p>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Show</span>
+    <button class="sw" id="t-belt" aria-pressed="true"><span class="box"></span>Belts and idlers</button>
+    <button class="sw" id="t-rack" aria-pressed="true"><span class="box"></span>Pen rack</button>
+    <button class="sw" id="t-elec" aria-pressed="true"><span class="box"></span>Electronics and legs</button>
+    <button class="sw" id="t-zone" aria-pressed="false"><span class="box"></span>Drawing area outline</button>
+    <button class="sw" id="t-human" aria-pressed="true"><span class="box"></span>People (165 / 153 cm) and eye level</button>
+    <button class="sw" id="t-spin" aria-pressed="false"><span class="box"></span>Auto-rotate</button>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Lighting</span>
+    <input id="expo" class="rng" type="range" min="45" max="300" value="135" aria-label="Brightness">
+    <div class="rngrow"><span>dim</span><b id="expoval">1.35&times;</b><span>bright</span></div>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Look at</span>
+    <div class="views">
+      <button data-v="machine">Whole machine</button>
+      <button data-v="rack">Pen rack</button>
+      <button data-v="carriage">Carriage</button>
+      <button data-v="front">Front on</button>
+      <button data-v="eye">Eye level</button>
+    </div>
+
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Parts</span>
+    <div class="part"><span class="chip" style="background:#1E2427"></span><b>2020 extrusion</b> &mdash; frame, uprights</div>
+    <div class="part"><span class="chip" style="background:#98A4AA"></span><b>2040 extrusion</b> &mdash; the moving rail</div>
+    <div class="part"><span class="chip" style="background:#3A4247"></span><b>NEMA 23</b> &mdash; 2 up top, 1 on the rail</div>
+    <div class="part"><span class="chip" style="background:#5AC8D8"></span><b>Printed parts</b> &mdash; carriage, brackets, pucks</div>
+    <div class="part"><span class="chip" style="background:#E8B23C"></span><b>GT2 belt</b> &mdash; 3 runs</div>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Cut list</span>
+    <dl class="spec">
+      <dt>2020 &times; 1200</dt><dd>2 &mdash; uprights</dd>
+      <dt>2020 &times; 1760</dt><dd>2 &mdash; cross members</dd>
+      <dt>2040 &times; 1800</dt><dd>1 &mdash; the moving rail</dd>
+      <dt>2020 &times; 700</dt><dd>2 &mdash; riser legs</dd>
+      <dt>2020 &times; 1760</dt><dd>1 &mdash; base tie</dd>
+      <dt>2020 &times; 430</dt><dd>2 &mdash; front toes</dd>
+      <dt>2020 &times; 1150</dt><dd>2 &mdash; rear braces</dd>
+      <dt>Flat bar 30&times;3</dt><dd>1 &times; 1800 &mdash; stiffener</dd>
+    </dl>
+    <p class="note" style="margin-top:11px"><b>Order it cut to length.</b> Every supplier cuts to order and their ends are square. A hacksawn 1800 mm extrusion is out of square, and an out-of-square frame draws parallelograms that no software setting will fix.</p>
+    <p class="note">Roughly 12.3 m of 2020 total &mdash; order 14 m for waste. Cross members are 1760 because they sit <i>between</i> the uprights, giving an outer envelope of exactly 1800.</p>
+    <p class="note">Assemble flat on the floor, corner brackets and T-nuts, then <b>measure both diagonals before final tightening</b> &mdash; they must match within 2 mm. That single measurement is the difference between a machine that draws squares and one that draws rhombuses.</p>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Pen change</span>
+    <p class="note">Four markers sit in a rack above the drawing area, each in a printed puck. The carriage drives up, magnets grab a puck, it draws, it puts it back and takes another.</p>
+    <p class="note">It needs <b>no extra motor and no extra wiring</b> &mdash; a pen change is just X/Y moves, so it costs nothing electrically. Hit play and watch one happen.</p>
+    <div class="warn" style="margin-top:12px">
+      <span class="lbl">One unsolved detail</span>
+      <p class="note">The rack has to grip a puck harder than the carriage magnets do (or it can never let go), yet let the carriage pull one out (or it can never pick up). Those two demands contradict each other. Real tool changers solve it with a <b>lateral escape</b>: the rack resists straight pull but not a sideways slide. That geometry is the one thing on this machine still to be designed.</p>
+    </div>
+  </div>
+
+  <div class="sec">
+    <span class="lbl">Decided</span>
+    <p class="note">Full size in one go &middot; freestanding leaning frame &middot; magnetic whiteboard with paper laid on by hand &middot; rail levelled by hand against top stops at power-on &middot; no homing cycle &middot; two switches as hard limits only.</p>
+  </div>
+</aside>
+
+<aside class="panel" id="hud">
+  <div class="row"><span>Pen X</span><span id="px">0</span></div>
+  <div class="row"><span>Pen Y</span><span id="py">0</span></div>
+  <div class="row"><span>Pen</span><span id="pzs">&mdash;</span></div>
+  <div class="row"><span>Colour</span><span id="pc">&mdash;</span></div>
+  <div class="row"><span>Done</span><span id="pp">0%</span></div>
+  <div class="state"><span class="dot" id="dot"></span><span id="st">Idle</span></div>
+  <div class="mv"><span id="mvn">0 / 0</span><span id="mvd">&mdash;</span></div>
+</aside>
+
+<div class="panel" id="bar">
+  <button class="btn" id="play" aria-label="Play"><svg id="pico" viewBox="0 0 16 16"><path d="M3 1.5v13l11-6.5z"/></svg></button>
+  <button class="btn" id="rew" aria-label="Restart"><svg viewBox="0 0 16 16"><path d="M2 2h2v5.2L13 2v12L4 8.8V14H2z"/></svg></button>
+  <button class="btn" id="prev" aria-label="Previous move"><svg viewBox="0 0 16 16"><path d="M11 1.5v13L3 8z"/><rect x="1" y="1.5" width="1.8" height="13"/></svg></button>
+  <button class="btn" id="next" aria-label="Next move"><svg viewBox="0 0 16 16"><path d="M5 1.5v13L13 8z"/><rect x="13.2" y="1.5" width="1.8" height="13"/></svg></button>
+  <div id="track" role="slider" tabindex="0" aria-label="Scrub drawing" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+    <div id="segs"></div><div id="fill"></div><div id="knob"></div>
+  </div>
+  <div class="spd">
+    <button data-s="60" aria-pressed="true">60&times;</button>
+    <button data-s="300" aria-pressed="false">300&times;</button>
+    <button data-s="1200" aria-pressed="false">1200&times;</button>
+  </div>
+  <div id="eta"><b id="etat">&mdash;</b><span>machine time</span></div>
+</div>
+
+<div id="legend">
+  <div class="keys"><kbd>Drag</kbd><em>look around</em></div>
+  <div class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><em>walk</em></div>
+  <div class="keys"><kbd>Space</kbd><kbd>Shift</kbd><em>up / down</em></div>
+  <div class="keys"><kbd>Scroll</kbd><em>zoom</em></div>
+  <div class="keys"><kbd>R</kbd><em>reset</em></div>
+  <div class="keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd><em>step one move</em></div>
+  <div class="keys"><kbd>P</kbd><em>play</em></div>
+</div>
+<button id="legtoggle">Hide keys</button>
+
+<div id="fatal" hidden>
+  <div>
+    <h2>The 3D view could not start</h2>
+    <p id="fatalmsg"></p>
+    <p class="fx">Most likely three.js did not load. Check that <code>three.min.js</code> sits next to this HTML file.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+function fatal(msg){
+  var f = document.getElementById("fatal");
+  document.getElementById("fatalmsg").textContent = msg;
+  f.hidden = false;
+  console.error("[ArtBot]", msg);
+}
+if (typeof THREE === "undefined"){
+  fatal("three.js is not available (no local three.min.js and the CDN was unreachable).");
+  return;
+}
+/* NOTE: deliberately no global error handler here - window "error" also fires
+   for resource 404s (favicon, fonts) and would blank a perfectly good page. */
+try {
+var RM = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+/* ======================= configuration (mm) ======================= */
+var C = {
+  frameW:1800, frameH:1200, ext:20, ext40:40,
+  workW:1600, workH:850,
+  standoff:55, lean:7*Math.PI/180, riser:700, eyeLevel:1475,
+  drawFeed:3000, travelFeed:5000,
+  rackSlots:4, penUpZ:9
+};
+/* work area sits below the rack strip */
+var WORK_TOP = C.frameH/2 - 80;           /* scene Y of machine-Y 0 */
+var WORK_LEFT = -C.workW/2;               /* scene X of machine-X 0 */
+var RACK_Y = -C.frameH/2 + 90;            /* rack sits LOW so you can reach it */
+function sx(mx){ return WORK_LEFT + mx; }
+function sy(my){ return WORK_TOP - my; }
+
+var INKS = [
+  {name:"Black", hex:0x23282B, css:"#4A5359"},
+  {name:"Red",   hex:0xD8392B, css:"#D8392B"},
+  {name:"Blue",  hex:0x3B72D8, css:"#3B72D8"},
+  {name:"Green", hex:0x22A05F, css:"#22A05F"}
+];
+
+/* ======================= renderer / scene ======================= */
+var cv = document.getElementById("c");
+var renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.LinearToneMapping;
+renderer.toneMappingExposure = 1.35;
+
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0B0E10);
+scene.fog = new THREE.Fog(0x0B0E10, 3600, 9000);
+
+var camera = new THREE.PerspectiveCamera(38, 1, 10, 20000);
+
+/* lights */
+scene.add(new THREE.HemisphereLight(0xAFC6D2, 0x14191C, 1.05));
+scene.add(new THREE.AmbientLight(0x8CA3AE, 0.32));
+var key = new THREE.DirectionalLight(0xFFF3E2, 1.05);
+key.position.set(-1500, 2400, 2600);
+key.castShadow = true;
+key.shadow.mapSize.set(2048,2048);
+var sc = key.shadow.camera;
+sc.left=-1700; sc.right=1700; sc.top=1500; sc.bottom=-1500; sc.near=100; sc.far=8000;
+scene.add(key);
+var rim = new THREE.DirectionalLight(0x6FB6C8, 0.55);
+rim.position.set(1800, 600, -1400);
+scene.add(rim);
+var fill = new THREE.DirectionalLight(0xCBDCE4, 0.55);   /* kills the black undersides */
+fill.position.set(1100, 500, 3000);
+scene.add(fill);
+var under = new THREE.DirectionalLight(0x7E939E, 0.30);  /* bounce from the floor */
+under.position.set(-600, -1400, 900);
+scene.add(under);
+
+/* materials */
+function mat(c,r,m){ return new THREE.MeshStandardMaterial({color:c, roughness:r, metalness:m}); }
+var M = {
+  ext:   mat(0x2E373C, 0.62, 0.35),
+  alu:   mat(0x98A4AA, 0.38, 0.72),
+  motor: mat(0x3A4247, 0.55, 0.55),
+  print: mat(0x5AC8D8, 0.72, 0.05),
+  print2:mat(0x2E4A52, 0.75, 0.05),
+  belt:  mat(0xE8B23C, 0.85, 0.0),
+  board: new THREE.MeshStandardMaterial({color:0xC9CCC8, roughness:0.95, metalness:0.0}),
+  steel: mat(0x6E787E, 0.42, 0.8),
+  dark:  mat(0x14191C, 0.8, 0.2),
+  floor: mat(0x0E1215, 0.98, 0.0)
+};
+
+/* helpers */
+function box(w,h,d,m,x,y,z,parent){
+  var o = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m);
+  o.position.set(x||0,y||0,z||0);
+  o.castShadow = true; o.receiveShadow = true;
+  (parent||scene).add(o); return o;
+}
+function cyl(r,h,m,parent){
+  var o = new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,26), m);
+  o.castShadow = true; o.receiveShadow = true;
+  (parent||scene).add(o); return o;
+}
+/* a cylinder spanning two world points */
+function strut(a,b,r,m,parent){
+  var d = new THREE.Vector3().subVectors(b,a), len = d.length();
+  var o = new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,14), m);
+  o.position.copy(a).addScaledVector(d,0.5);
+  o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), d.clone().normalize());
+  o.castShadow = true; (parent||scene).add(o); return o;
+}
+
+/* ======================= the rig ======================= */
+var COS = Math.cos(C.lean), SIN = Math.sin(C.lean);
+var rig = new THREE.Group();
+rig.rotation.x = -C.lean;
+rig.position.y = C.riser + (C.frameH/2)*COS;   /* board lifted to viewing height */
+scene.add(rig);
+
+/* floor */
+M.floor.color.setHex(0x171D21);
+var floor = new THREE.Mesh(new THREE.PlaneGeometry(14000,14000), M.floor);
+floor.rotation.x = -Math.PI/2; floor.receiveShadow = true;
+scene.add(floor);
+var grid = new THREE.GridHelper(12000, 48, 0x1A2226, 0x141A1D);
+grid.position.y = 0.5; scene.add(grid);
+
+/* whiteboard */
+var board = box(C.frameW-40, C.frameH-40, 16, M.board, 0, 0, -12, rig);
+box(C.frameW-16, C.frameH-16, 6, M.dark, 0, 0, -24, rig);
+
+/* frame: 2020 uprights + cross members */
+var hw = C.frameW/2 - C.ext/2, hh = C.frameH/2 - C.ext/2;
+box(C.ext, C.frameH, C.ext, M.ext, -hw, 0, 10, rig);
+box(C.ext, C.frameH, C.ext, M.ext,  hw, 0, 10, rig);
+box(C.frameW, C.ext, C.ext, M.ext, 0,  hh, 10, rig);
+box(C.frameW, C.ext, C.ext, M.ext, 0, -hh, 10, rig);
+
+/* drawing-area outline */
+var zoneG = new THREE.Group(); rig.add(zoneG); zoneG.visible = false;
+(function(){
+  var g = new THREE.BufferGeometry();
+  var L = sx(0), R = sx(C.workW), T = sy(0), B = sy(C.workH);
+  g.setAttribute("position", new THREE.Float32BufferAttribute(
+    [L,T,-3, R,T,-3, R,T,-3, R,B,-3, R,B,-3, L,B,-3, L,B,-3, L,T,-3],3));
+  zoneG.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({color:0x5AC8D8})));
+})();
+
+/* ---- Y axis: gantry plates carry the rail ---- */
+var gantry = new THREE.Group(); rig.add(gantry);
+var RAIL_Z = C.standoff + C.ext/2;   /* pen-down plane: tip reaches the board face */
+var RACK_Z = RAIL_Z + 12;            /* stored pens sit clear of the board */
+var PITCH_R = 20 * 2 / (2*Math.PI);  /* 20-tooth GT2 pitch radius = 6.37 mm */
+
+/* everything that visibly moves gets registered here */
+var ANIM = {yPul:[], yIdl:[], xPul:null, xIdl:null, springs:[], horn:null,
+            yUp:[], yDn:[], xL:null, xR:null, jaws:[]};
+
+/* --- reusable detail parts --- */
+function pulley20T(parent, x, y, z){
+  var g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
+  var b = cyl(PITCH_R + 0.6, 7.4, M.steel, g); b.rotation.x = Math.PI/2;
+  [-4.6, 4.6].forEach(function(o){
+    var f = cyl(PITCH_R + 2.6, 1.5, M.steel, g); f.rotation.x = Math.PI/2; f.position.z = o;
+  });
+  for (var i = 0; i < 20; i++){                       /* 20 teeth, actually counted */
+    var a = i/20 * Math.PI*2;
+    box(1.15, 1.15, 6.6, M.dark,
+        Math.cos(a)*(PITCH_R + 0.4), Math.sin(a)*(PITCH_R + 0.4), 0, g);
+  }
+  return g;
+}
+function idler20T(parent, x, y, z){
+  var g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
+  var b = cyl(PITCH_R + 0.6, 7.4, M.steel, g); b.rotation.x = Math.PI/2;
+  [-4.6, 4.6].forEach(function(o){
+    var f = cyl(PITCH_R + 2.6, 1.5, M.steel, g); f.rotation.x = Math.PI/2; f.position.z = o;
+  });
+  var bolt = cyl(2.5, 26, M.dark, g); bolt.rotation.x = Math.PI/2;
+  return g;
+}
+function nema23(parent, x, y, z){
+  var g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
+  box(57, 57, 76, M.motor, 0, 0, 0, g);
+  var boss = cyl(19, 5, M.steel, g); boss.rotation.x = Math.PI/2; boss.position.z = -40;
+  var sh = cyl(4, 30, M.steel, g);  sh.rotation.x = Math.PI/2;  sh.position.z = -52;
+  [[-23.6,-23.6],[23.6,-23.6],[23.6,23.6],[-23.6,23.6]].forEach(function(a){
+    var bl = cyl(2.6, 7, M.dark, g); bl.rotation.x = Math.PI/2;
+    bl.position.set(a[0], a[1], -36);                 /* NEMA 23 bolts, 47.14 sq */
+  });
+  box(22, 14, 9, M.dark, 0, 0, 41, g);                /* cable exit */
+  return g;
+}
+/* compression spring, natural length `len`, running along -Z from its origin */
+function coilSpring(len, rad, coils){
+  var pts = [], n = coils * 20;
+  for (var i = 0; i <= n; i++){
+    var t = i/n, a = t * coils * Math.PI * 2;
+    pts.push(new THREE.Vector3(Math.cos(a)*rad, Math.sin(a)*rad, -t*len));
+  }
+  var m = new THREE.Mesh(
+    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), n, 0.85, 6, false), M.steel);
+  m.castShadow = true;
+  return m;
+}
+
+/* --- the rail --- */
+box(C.frameW, C.ext40, C.ext, M.alu, 0, 0, RAIL_Z, gantry);              /* 2040 rail */
+box(C.frameW-30, 6, 26, M.steel, 0, 0, RAIL_Z + 18, gantry);             /* stiffener */
+[-1,1].forEach(function(s){
+  box(64, 64, 8, M.alu, s*hw, 0, 32, gantry);                            /* gantry plate */
+  [[-20,-20],[20,-20],[20,20],[-20,20]].forEach(function(o){             /* V-wheels */
+    var w = cyl(7.5, 9, M.dark, gantry); w.rotation.x = Math.PI/2;
+    w.position.set(s*hw + o[0], o[1], 22);
+  });
+});
+
+/* --- X motor on the left end of the rail, idler on the right --- */
+nema23(gantry, -hw + 60, 0, RAIL_Z + 60);
+ANIM.xPul = pulley20T(gantry, -hw + 60, 0, RAIL_Z + 12);
+ANIM.xIdl = idler20T(gantry,  hw - 46, 0, RAIL_Z + 12);
+
+/* ================= pen carriage, in detail ================= */
+var carriage = new THREE.Group(); gantry.add(carriage);
+var MP_Z = RAIL_Z + 27;    /* mount plate centre */
+var FW_Z = RAIL_Z - 35;    /* front wall centre  */
+
+/* rides the rail on four V-wheels */
+[[-30,-22],[30,-22],[30,22],[-30,22]].forEach(function(o){
+  var w = cyl(7.5, 9, M.dark, carriage); w.rotation.x = Math.PI/2;
+  w.position.set(o[0], o[1], RAIL_Z);
+});
+box(90, 76, 8, M.print, 0, 0, MP_Z, carriage);            /* mount plate  */
+box(90, 76, 8, M.print, 0, 0, FW_Z, carriage);            /* front wall   */
+[-42, 42].forEach(function(x){
+  box(6, 76, MP_Z - FW_Z, M.print2, x, 0, (MP_Z+FW_Z)/2, carriage);   /* side ribs */
+});
+/* pen pass-through in the front wall */
+[-20, 20].forEach(function(x){                             /* two guide rods */
+  var r = cyl(4, MP_Z - FW_Z, M.steel, carriage);
+  r.rotation.x = Math.PI/2; r.position.set(x, 0, (MP_Z+FW_Z)/2);
+});
+
+/* the shuttle slides on the rods. Springs push it at the board, servo pulls it back. */
+var SPRING_FREE = 14;
+var shuttle = new THREE.Group(); carriage.add(shuttle);
+box(62, 34, 18, M.print, 0, 0, 0, shuttle);                /* shuttle block */
+box(62, 3.2, 18, M.dark, 0, 17, 0, shuttle);               /* split-clamp kerf */
+var pinch = cyl(1.7, 66, M.dark, shuttle);                 /* pinch bolt */
+pinch.rotation.z = Math.PI/2; pinch.position.set(0, 11, 0);
+[-9, 9].forEach(function(x){                               /* coupling magnets */
+  box(9, 9, 3, M.steel, x, 0, -10, shuttle);
+});
+box(6, 30, 7, M.print2, -30, 20, -6, shuttle);             /* servo cam tab */
+
+[-20, 20].forEach(function(x){                             /* one spring per rod */
+  var sp = coilSpring(SPRING_FREE, 6.2, 5);
+  sp.position.set(x, 0, MP_Z - 4);
+  carriage.add(sp); ANIM.springs.push(sp);
+});
+
+/* SG90 + a horn that actually swings with the pen */
+box(23, 12.4, 23, M.dark, -52, 26, RAIL_Z - 12, carriage);        /* servo body */
+box(32.2, 2.6, 8, M.dark, -52, 26, RAIL_Z - 22, carriage);        /* mounting tabs */
+ANIM.horn = new THREE.Group();
+ANIM.horn.position.set(-40, 26, RAIL_Z - 12);
+carriage.add(ANIM.horn);
+box(4, 3, 17, mat(0xE8E8E4, 0.6, 0.0), 0, 0, -8, ANIM.horn);      /* the arm */
+var hub = cyl(3.2, 5, mat(0xE8E8E4, 0.6, 0.0), ANIM.horn); hub.rotation.z = Math.PI/2;
+
+/* whatever puck is currently held hangs off the shuttle */
+var heldGroup = new THREE.Group(); shuttle.add(heldGroup);
+
+function makePuck(ink){
+  var g = new THREE.Group();
+  box(30, 30, 14, mat(ink.hex, 0.7, 0.05), 0, 0, -10, g);   /* printed puck, ink-coded */
+  box(9, 9, 3, M.steel, -9, 0, -2, g);                      /* mating magnets */
+  box(9, 9, 3, M.steel,  9, 0, -2, g);
+  box(34, 6, 8, mat(ink.hex, 0.7, 0.05), 0, 0, -14, g);     /* waist the rack grips */
+  var barrel = cyl(8, 34, mat(0x2B3135, 0.7, 0.1), g);
+  barrel.rotation.x = Math.PI/2; barrel.position.z = -36;
+  var band = cyl(8.4, 22, mat(ink.hex, 0.5, 0.05), g);
+  band.rotation.x = Math.PI/2; band.position.z = -58;
+  var tip = new THREE.Mesh(new THREE.ConeGeometry(3.4, 10, 18), mat(ink.hex, 0.6, 0.0));
+  tip.rotation.x = -Math.PI/2; tip.position.z = -64; g.add(tip);
+  return g;
+}
+
+/* ================= the pen rack ================= */
+var rackG = new THREE.Group(); rig.add(rackG);
+var SLOT_X = [], pucks = [];
+(function(){
+  var span = 520, x0 = -span/2;
+  box(span+110, 26, 14, M.print2, 0, RACK_Y - 30, RACK_Z + 18, rackG);   /* spine */
+  for (var i = 0; i < C.rackSlots; i++){
+    var x = x0 + span*(i/(C.rackSlots-1));
+    SLOT_X.push(x);
+    box(46, 10, 26, M.print2, x, RACK_Y - 19, RACK_Z, rackG);            /* seat floor */
+    var pair = [];
+    [-1, 1].forEach(function(sd){                                        /* sprung jaws */
+      var j = new THREE.Group();
+      j.position.set(x + sd*20, RACK_Y - 12, RACK_Z);
+      rackG.add(j);
+      box(4, 30, 26, M.print, 0, 12, 0, j);                              /* the leaf */
+      box(6, 5, 26, M.print, -sd*1.5, 25, 0, j);                         /* the lip */
+      j.userData.side = sd;
+      pair.push(j);
+    });
+    ANIM.jaws.push(pair);
+    var pk = makePuck(INKS[i]);
+    pk.position.set(x, RACK_Y, RACK_Z);
+    rackG.add(pk); pucks.push(pk);
+  }
+})();
+
+/* ================= belts, Y motors, idlers ================= */
+var beltG = new THREE.Group(); rig.add(beltG);
+[-1, 1].forEach(function(s){
+  nema23(rig, s*hw, hh, 70);
+  ANIM.yPul.push(pulley20T(beltG, s*hw, hh, 22));
+  ANIM.yIdl.push(idler20T(beltG, s*hw, -hh, 22));
+  /* unit-height boxes, scaled every frame to the live gantry position */
+  ANIM.yUp.push(box(4, 1, 3, M.belt, s*hw - PITCH_R, 0, 22, beltG));
+  ANIM.yDn.push(box(4, 1, 3, M.belt, s*hw + PITCH_R, 0, 22, beltG));
+});
+ANIM.xL = box(1, 4, 3, M.belt, 0, -PITCH_R, RAIL_Z + 12, gantry);
+ANIM.xR = box(1, 4, 3, M.belt, 0,  PITCH_R, RAIL_Z + 12, gantry);
+
+/* drive every moving part from the pen position. Called once per frame. */
+function updateMechanism(px, py, pz){
+  /* pulleys turn by belt travel / pitch radius */
+  for (var i = 0; i < 2; i++){
+    ANIM.yPul[i].rotation.z = -py / PITCH_R;
+    ANIM.yIdl[i].rotation.z = -py / PITCH_R;
+    var up = Math.max(1, hh - py), dn = Math.max(1, py + hh);
+    ANIM.yUp[i].scale.y = up; ANIM.yUp[i].position.y = py + up/2;
+    ANIM.yDn[i].scale.y = dn; ANIM.yDn[i].position.y = py - dn/2;
+  }
+  ANIM.xPul.rotation.z = px / PITCH_R;
+  ANIM.xIdl.rotation.z = px / PITCH_R;
+  var lx = -hw + 60, rx = hw - 46;
+  var L = Math.max(1, px - lx), R = Math.max(1, rx - px);
+  ANIM.xL.scale.x = L; ANIM.xL.position.x = lx + L/2;
+  ANIM.xR.scale.x = R; ANIM.xR.position.x = rx - R/2;
+
+  /* springs compress as the servo pulls the pen off the board */
+  var gap = (MP_Z - 4) - (RAIL_Z + pz + 9);
+  var sc = Math.max(0.18, gap / SPRING_FREE);
+  ANIM.springs[0].scale.z = sc; ANIM.springs[1].scale.z = sc;
+
+  /* servo horn swings through its travel */
+  ANIM.horn.rotation.x = -0.30 + (pz / C.penUpZ) * 1.05;
+
+  /* rack jaws splay when the carriage is at that slot */
+  for (var k = 0; k < ANIM.jaws.length; k++){
+    var near = Math.abs(px - SLOT_X[k]) < 26 && Math.abs(py - RACK_Y) < 70;
+    var pair = ANIM.jaws[k];
+    for (var j = 0; j < 2; j++){
+      var want = near ? pair[j].userData.side * 0.26 : 0;
+      pair[j].rotation.z += (want - pair[j].rotation.z) * 0.2;
+    }
+  }
+}
+
+/* ---- legs, feet, electronics (world space, computed off the lean) ---- */
+var baseG = new THREE.Group(); scene.add(baseG);
+(function(){
+  function W(x,y){ return new THREE.Vector3(x, rig.position.y + y*COS, -y*SIN); }
+  var legFeet = [];
+  [-1,1].forEach(function(s){
+    var fb = W(s*hw, -C.frameH/2 + 20);                 /* frame bottom corner */
+    var gnd = new THREE.Vector3(fb.x, 0, fb.z);
+    strut(fb, gnd, 16, M.steel, baseG);                                  /* upright leg */
+    strut(gnd, new THREE.Vector3(fb.x, 0, fb.z + 430), 12, M.steel, baseG);  /* toe */
+    strut(W(s*hw, 60), new THREE.Vector3(fb.x, 0, fb.z - 820), 13, M.steel, baseG); /* rear brace */
+    box(170, 18, 100, M.dark, fb.x, 9, fb.z + 430, baseG);
+    box(170, 18, 100, M.dark, fb.x, 9, fb.z - 820, baseG);
+    legFeet.push(gnd);
+  });
+  strut(new THREE.Vector3(legFeet[0].x, 240, legFeet[0].z),
+        new THREE.Vector3(legFeet[1].x, 240, legFeet[1].z), 11, M.steel, baseG);
+  /* control box on the left rear leg */
+  var e = new THREE.Group(); e.position.set(-hw, 380, -520); baseG.add(e);
+  box(300, 210, 130, M.dark, 0,0,0, e);
+  box(268, 178, 3, mat(0x0A0D0F,0.9,0.1), 0,0,66, e);
+  for (var i=0;i<3;i++) box(56, 96, 22, M.steel, -84 + i*84, 20, 70, e);  /* TB6600 bricks */
+  box(70, 52, 16, mat(0x11602E,0.8,0.1), 40, -62, 70, e);                 /* Uno + shield */
+})();
+
+/* ---- 1.7 m person, for scale, and the eye-level line ---- */
+var scaleG = new THREE.Group(); scene.add(scaleG);
+(function(){
+  var skin = mat(0x0E1418, 1.0, 0.0);
+  /* NFHS-5 (2019-21) adult averages: men 165 cm, women 153 cm */
+  function person(H, x, z, face){
+    var p = new THREE.Group();
+    p.position.set(x, 0, z); p.rotation.y = face; scaleG.add(p);
+    [-0.058*H, 0.058*H].forEach(function(o){
+      var leg = cyl(0.037*H, 0.47*H, skin, p); leg.position.set(o, 0.235*H, 0);
+    });
+    var torso = cyl(0.091*H, 0.36*H, skin, p); torso.position.y = 0.655*H;
+    box(0.22*H, 0.07*H, 0.12*H, skin, 0, 0.825*H, 0, p);
+    var head = new THREE.Mesh(new THREE.SphereGeometry(0.062*H, 20, 16), skin);
+    head.position.y = 0.93*H; head.castShadow = true; p.add(head);
+    [-0.13*H, 0.13*H].forEach(function(o){
+      var arm = cyl(0.028*H, 0.37*H, skin, p); arm.position.set(o, 0.66*H, 0.02*H);
+    });
+    return p;
+  }
+  person(1650, -1230, 1010, 0.30);    /* 165 cm - Indian adult male average   */
+  person(1530,  1610, 880, -0.34);   /* 153 cm - Indian adult female average */
+
+  /* eye-level reference across the board */
+  var g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(
+    [-1250, C.eyeLevel, 700, 1250, C.eyeLevel, 700], 3));
+  var ln = new THREE.Line(g, new THREE.LineDashedMaterial(
+    {color:0x5AC8D8, dashSize:44, gapSize:30}));
+  ln.computeLineDistances(); scaleG.add(ln);
+})();
+
+/* ======================= the drawing ======================= */
+/* four ink layers. black lays down the border and registration marks,
+   the colours are rose curves and a lissajous - what a pen plotter
+   actually looks good drawing.                                        */
+function buildLayers(){
+  var L = [[],[],[],[]];
+  var cxm = C.workW/2, cym = C.workH/2, R = Math.min(cxm,cym) - 60;
+
+  /* 0 black: border + corner marks */
+  var i0 = 70;
+  L[0].push([[i0,i0],[C.workW-i0,i0],[C.workW-i0,C.workH-i0],[i0,C.workH-i0],[i0,i0]]);
+  [[i0,i0],[C.workW-i0,i0],[C.workW-i0,C.workH-i0],[i0,C.workH-i0]].forEach(function(p){
+    L[0].push([[p[0]-34,p[1]],[p[0]+34,p[1]]]);
+    L[0].push([[p[0],p[1]-34],[p[0],p[1]+34]]);
+  });
+
+  function rose(k, rad, phase, steps){
+    var pts=[];
+    for (var i=0;i<=steps;i++){
+      var t = i/steps*Math.PI*2*(k%2?1:2);
+      var r = rad*Math.cos(k*t + phase);
+      pts.push([cxm + r*Math.cos(t), cym + r*Math.sin(t)*0.66]);
+    }
+    return pts;
+  }
+  /* 1 red: nested rose, 5 petals */
+  for (var a=0;a<5;a++) L[1].push(rose(5, R - a*26, 0, 420));
+  /* 2 blue: rose, 7 petals, rotated */
+  for (var b=0;b<4;b++) L[2].push(rose(7, R - 40 - b*30, Math.PI/7, 460));
+  /* 3 green: lissajous ribbon */
+  for (var c=0;c<3;c++){
+    var pts=[];
+    for (var i=0;i<=540;i++){
+      var t=i/540*Math.PI*2;
+      pts.push([cxm + (R-10)*Math.sin(3*t + c*0.09),
+                cym + (R*0.62)*Math.sin(4*t + 1.1)]);
+    }
+    L[3].push(pts);
+  }
+  return L;
+}
+
+/* ---- flatten into a timed move list ---- */
+/* op: 0 travel, 1 draw, 2 rack move (pen change) */
+var moves = [], total = 0, layerStart = [];
+(function(){
+  var layers = buildLayers();
+  var cur = {x:SLOT_X[0], y:RACK_Y + 150, z:C.penUpZ};
+  var held = -1;
+
+  function push(x,y,z,op,ink){
+    var d = Math.hypot(x-cur.x, y-cur.y) + Math.abs(z-cur.z);
+    var feed = (op===1) ? C.drawFeed : C.travelFeed;
+    var dur = d / (feed/60);                       /* seconds at real feed */
+    if (d < 0.001) dur = 0.02;
+    moves.push({x:x,y:y,z:z,op:op,ink:ink,t0:total,dur:dur,
+                fx:cur.x,fy:cur.y,fz:cur.z, held:held});
+    total += dur; cur = {x:x,y:y,z:z};
+  }
+  function dropPuck(i){
+    push(SLOT_X[i], RACK_Y + 150, C.penUpZ, 2, i);   /* above the slot   */
+    push(SLOT_X[i], RACK_Y,       C.penUpZ, 2, i);   /* lower into it    */
+    moves[moves.length-1].release = i;
+    push(SLOT_X[i], RACK_Y + 150, C.penUpZ, 2, -1);  /* lift away, empty */
+    held = -1;
+  }
+  function pickPuck(i){
+    push(SLOT_X[i], RACK_Y + 150, C.penUpZ, 2, -1);
+    push(SLOT_X[i], RACK_Y,       C.penUpZ, 2, -1);
+    moves[moves.length-1].grab = i;
+    held = i;
+    push(SLOT_X[i], RACK_Y + 150, C.penUpZ, 2, i);
+  }
+
+  for (var li=0; li<layers.length; li++){
+    layerStart.push(total);
+    if (held >= 0) dropPuck(held);
+    pickPuck(li);
+    var paths = layers[li];
+    for (var pi=0; pi<paths.length; pi++){
+      var pts = paths[pi];
+      push(sx(pts[0][0]), sy(pts[0][1]), C.penUpZ, 0, li);
+      push(sx(pts[0][0]), sy(pts[0][1]), 0, 0, li);
+      for (var k=1;k<pts.length;k++) push(sx(pts[k][0]), sy(pts[k][1]), 0, 1, li);
+      push(sx(pts[pts.length-1][0]), sy(pts[pts.length-1][1]), C.penUpZ, 0, li);
+    }
+  }
+  layerStart.push(total);
+  dropPuck(held);
+})();
+
+/* ---- ink laid on the board ---- */
+var inkLines = INKS.map(function(ink){
+  var cap = 0;
+  moves.forEach(function(m){ if (m.op===1) cap++; });
+  var g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array((cap+8)*6), 3));
+  g.setDrawRange(0,0);
+  var l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({color:ink.hex}));
+  l.frustumCulled = false; rig.add(l);
+  return {line:l, n:0, arr:g.attributes.position.array, geo:g};
+});
+function inkTo(li, ax,ay, bx,by){
+  var s = inkLines[li], i = s.n*6;
+  if (i+6 > s.arr.length) return;
+  s.arr[i]=ax; s.arr[i+1]=ay; s.arr[i+2]=-3;
+  s.arr[i+3]=bx; s.arr[i+4]=by; s.arr[i+5]=-3;
+  s.n++; s.geo.setDrawRange(0, s.n*2);
+  s.geo.attributes.position.needsUpdate = true;
+  s.geo.computeBoundingSphere();
+}
+function clearInk(){
+  inkLines.forEach(function(s){ s.n=0; s.geo.setDrawRange(0,0); });
+}
+
+/* ======================= playback ======================= */
+var clock = 0, playing = false, speed = 60, mi = 0;
+var $ = function(id){ return document.getElementById(id); };
+
+function applyAt(time){
+  /* rebuild from scratch when scrubbing backwards */
+  if (time < clock){ clearInk(); mi = 0; }
+  clock = time;
+  var m = null;
+  while (mi < moves.length && moves[mi].t0 + moves[mi].dur <= clock){
+    var f = moves[mi];
+    if (f.op === 1) inkTo(f.ink, f.fx, f.fy, f.x, f.y);
+    if (f.release !== undefined){
+      var pk = pucks[f.release];
+      rackG.add(pk); pk.position.set(SLOT_X[f.release], RACK_Y, RACK_Z);
+      pk.rotation.set(0,0,0);
+    }
+    if (f.grab !== undefined){
+      heldGroup.add(pucks[f.grab]);
+      pucks[f.grab].position.set(0,0,0);
+    }
+    mi++;
+  }
+  m = moves[Math.min(mi, moves.length-1)];
+  var u = m.dur > 0 ? Math.min(1, Math.max(0,(clock - m.t0)/m.dur)) : 1;
+  var px = m.fx + (m.x-m.fx)*u, py = m.fy + (m.y-m.fy)*u, pz = m.fz + (m.z-m.fz)*u;
+
+  carriage.position.set(px, 0, 0);
+  gantry.position.set(0, py, 0);
+  shuttle.position.set(0, 0, RAIL_Z + pz);
+  updateMechanism(px, py, pz);
+
+  if (m.op === 1 && u > 0){
+    var lx = m.fx + (m.x-m.fx)*Math.max(0,u-0.06);
+    var ly = m.fy + (m.y-m.fy)*Math.max(0,u-0.06);
+    inkTo(m.ink, lx, ly, px, py);
+    inkLines[m.ink].n--;   /* provisional segment, redrawn next frame */
+  }
+
+  /* readout */
+  $("px").textContent = Math.round(px - WORK_LEFT);
+  $("py").textContent = Math.round(WORK_TOP - py);
+  var ink = (m.op === 2) ? null : INKS[m.ink];
+  $("pc").textContent = ink ? ink.name : "changing";
+  if (ink) $("pc").style.color = ink.css; else $("pc").style.color = "#5AC8D8";
+  var pct = clock/total;
+  $("pp").textContent = Math.round(pct*100) + "%";
+  $("fill").style.width = (pct*100) + "%";
+  $("knob").style.left = (pct*100) + "%";
+  $("track").setAttribute("aria-valuenow", Math.round(pct*100));
+  $("etat").textContent = fmt(total - clock) + " left";
+
+  $("pzs").textContent = (pz < 0.5) ? "down" : (pz > C.penUpZ - 0.5 ? "up" : pz.toFixed(1) + " mm");
+  $("pzs").style.color = (pz < 0.5) ? "#E8B23C" : "#8B979E";
+  $("mvn").textContent = (mi + 1) + " / " + moves.length;
+  $("mvd").textContent = describe(m);
+
+  var dot = $("dot");
+  dot.className = "dot" + (!playing ? "" : (m.op===2 ? " swap on" : " on"));
+  $("st").textContent = !playing ? "Paused" : (m.op===2 ? "Changing pen" : (m.op===1 ? "Drawing" : "Travelling"));
+}
+function describe(m){
+  if (m.grab    !== undefined) return "Pick up " + INKS[m.grab].name;
+  if (m.release !== undefined) return "Put back " + INKS[m.release].name;
+  if (m.op === 2) return "Move at the rack";
+  if (m.op === 1) return "Draw \u2014 " + INKS[m.ink].name;
+  if (Math.abs(m.z - m.fz) > 0.01) return (m.z > m.fz) ? "Servo lifts pen" : "Spring drops pen";
+  return "Travel, pen up";
+}
+function fmt(s){
+  var h = Math.floor(s/3600), mm = Math.floor(s%3600/60);
+  return h ? (h + "h " + mm + "m") : (mm + "m " + Math.floor(s%60) + "s");
+}
+
+/* segment ribbon under the scrubber, one block per ink */
+(function(){
+  var wrap = $("segs");
+  for (var i=0;i<4;i++){
+    var d = document.createElement("div");
+    d.style.background = INKS[i].css;
+    d.style.flex = String((layerStart[i+1]-layerStart[i]) / total);
+    wrap.appendChild(d);
+  }
+})();
+
+/* ======================= controls ======================= */
+/* One scheme, always live. No modes, no pointer lock:
+     drag  = look around      WASD = walk
+     wheel = zoom             space / shift = up / down            */
+var sph = {th: -0.40, ph: 1.25, rad: 5000};
+var target = new THREE.Vector3(170, 1120, 0);
+var goal = null, follow = null;
+var HOME = {th:-0.40, ph:1.25, rad:5000, t:new THREE.Vector3(170,1120,0)};
+
+function place(){
+  camera.position.set(
+    target.x + sph.rad*Math.sin(sph.ph)*Math.sin(sph.th),
+    target.y + sph.rad*Math.cos(sph.ph),
+    target.z + sph.rad*Math.sin(sph.ph)*Math.cos(sph.th));
+  camera.lookAt(target);
+}
+
+rig.updateMatrixWorld(true);
+function worldOf(x,y,z){ return rig.localToWorld(new THREE.Vector3(x,y,z)); }
+var VIEWS = {
+  machine:  function(){ return {th:-0.40, ph:1.25, rad:5000, t:new THREE.Vector3(170,1120,0)}; },
+  rack:     function(){ return {th:-0.95, ph:1.46, rad:760,  t:worldOf(-60, RACK_Y + 10, RACK_Z - 30)}; },
+  carriage: function(){ return {th:1.15,  ph:1.32, rad:820,  t:null, follow:carriage}; },
+  front:    function(){ return {th:0, ph:Math.PI/2 - C.lean, rad:3400, t:new THREE.Vector3(0,1330,0)}; },
+  eye:      function(){ return {th:0.06, ph:Math.PI/2 + 0.02, rad:2600, t:new THREE.Vector3(0,C.eyeLevel,0)}; }
+};
+function goTo(name){
+  var v = VIEWS[name]();
+  follow = v.follow || null;
+  goal = {th:v.th, ph:v.ph, rad:v.rad, t:v.t ? v.t.clone() : null};
+}
+
+/* ---- keyboard walk. Always on. ---- */
+var keys = {};
+var WALK = {KeyW:1,KeyA:1,KeyS:1,KeyD:1,Space:1,ShiftLeft:1,ShiftRight:1,KeyQ:1,KeyE:1};
+function typing(){
+  var t = document.activeElement;
+  return t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+}
+addEventListener("keydown", function(e){
+  if (typing() || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.code === "KeyR"){ goTo("machine"); e.preventDefault(); return; }
+  if (WALK[e.code]){ keys[e.code] = true; e.preventDefault(); }
+});
+addEventListener("keyup", function(e){ delete keys[e.code]; });
+addEventListener("blur", function(){ keys = {}; });
+
+function stepWalk(dt){
+  if (!(keys.KeyW||keys.KeyS||keys.KeyA||keys.KeyD||
+        keys.Space||keys.KeyE||keys.ShiftLeft||keys.ShiftRight||keys.KeyQ)) return;
+  var d = Math.min(2600, Math.max(200, sph.rad*0.24)) * dt;   /* zoomed in = finer steps */
+  var f = new THREE.Vector3(); camera.getWorldDirection(f);
+  f.y = 0;
+  if (f.lengthSq() < 1e-8) f.set(0,0,-1);
+  f.normalize();
+  var r = new THREE.Vector3().crossVectors(f, new THREE.Vector3(0,1,0)).normalize();
+  if (keys.KeyW) target.addScaledVector(f,  d);
+  if (keys.KeyS) target.addScaledVector(f, -d);
+  if (keys.KeyD) target.addScaledVector(r,  d);
+  if (keys.KeyA) target.addScaledVector(r, -d);
+  if (keys.Space || keys.KeyE) target.y += d;
+  if (keys.ShiftLeft || keys.ShiftRight || keys.KeyQ) target.y -= d;
+  /* stay inside a box around the machine - getting lost is not a feature */
+  target.x = Math.max(-4500, Math.min(4500, target.x));
+  target.z = Math.max(-4500, Math.min(4500, target.z));
+  target.y = Math.max(10,   Math.min(3600, target.y));
+  goal = null; follow = null;
+  place();
+}
+
+/* ---- mouse ---- */
+var drag = null;
+cv.addEventListener("pointerdown", function(e){
+  drag = {x:e.clientX, y:e.clientY, pan:(e.button === 2 || e.shiftKey)};
+  cv.setPointerCapture(e.pointerId);
+  goal = null; follow = null;
+});
+cv.addEventListener("pointermove", function(e){
+  if (!drag) return;
+  var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  drag.x = e.clientX; drag.y = e.clientY;
+  if (drag.pan){
+    var sc = sph.rad*0.0011;
+    var right = new THREE.Vector3().setFromMatrixColumn(camera.matrix,0);
+    var up    = new THREE.Vector3().setFromMatrixColumn(camera.matrix,1);
+    target.addScaledVector(right, -dx*sc).addScaledVector(up, dy*sc);
+    target.x = Math.max(-4500, Math.min(4500, target.x));
+    target.z = Math.max(-4500, Math.min(4500, target.z));
+    target.y = Math.max(10,   Math.min(3600, target.y));
+  } else {
+    sph.th -= dx*0.0055;
+    sph.ph = Math.max(0.08, Math.min(2.96, sph.ph - dy*0.0048));
+  }
+  place();
+});
+addEventListener("pointerup", function(){ drag = null; });
+cv.addEventListener("contextmenu", function(e){ e.preventDefault(); });
+cv.addEventListener("wheel", function(e){
+  e.preventDefault();
+  sph.rad = Math.max(160, Math.min(16000, sph.rad * (1 + Math.sign(e.deltaY)*0.12)));
+  goal = null;
+  place();
+}, {passive:false});
+
+/* ---- transport ---- */
+function setPlay(p){
+  playing = p;
+  $("pico").innerHTML = p ? '<rect x="2.5" y="1.5" width="4" height="13"/><rect x="9.5" y="1.5" width="4" height="13"/>'
+                          : '<path d="M3 1.5v13l11-6.5z"/>';
+  $("play").setAttribute("aria-label", p ? "Pause" : "Play");
+}
+function stepBy(n){
+  setPlay(false);
+  var i = Math.max(0, Math.min(moves.length - 1, mi + n));
+  applyAt(moves[i].t0 + moves[i].dur * 0.985);
+}
+$("prev").onclick = function(){ stepBy(-1); };
+$("next").onclick = function(){ stepBy(1); };
+addEventListener("keydown", function(e){
+  if (typing() || e.metaKey || e.ctrlKey) return;
+  if (e.code === "ArrowRight"){ stepBy(e.shiftKey ? 25 : 1); e.preventDefault(); }
+  if (e.code === "ArrowLeft"){  stepBy(e.shiftKey ? -25 : -1); e.preventDefault(); }
+  if (e.code === "KeyP"){ setPlay(!playing); e.preventDefault(); }
+});
+$("play").onclick = function(){ setPlay(!playing); };
+$("rew").onclick  = function(){ clearInk(); mi = 0; clock = 0; applyAt(0); };
+document.querySelectorAll(".spd button").forEach(function(b){
+  b.onclick = function(){
+    speed = +b.dataset.s;
+    document.querySelectorAll(".spd button").forEach(function(o){
+      o.setAttribute("aria-pressed", String(o === b)); });
+  };
+});
+function scrubTo(e){
+  var r = $("track").getBoundingClientRect();
+  applyAt(Math.max(0, Math.min(1,(e.clientX-r.left)/r.width)) * total);
+}
+$("track").addEventListener("pointerdown", function(e){
+  scrubTo(e);
+  try { $("track").setPointerCapture(e.pointerId); } catch(err){}
+  $("track").onpointermove = function(ev){ if (ev.buttons) scrubTo(ev); };
+});
+$("track").addEventListener("pointerup", function(){ $("track").onpointermove = null; });
+
+/* ---- toggles + views ---- */
+function tog(id, fn, init){
+  var b = $(id);
+  b.onclick = function(){
+    var v = b.getAttribute("aria-pressed") !== "true";
+    b.setAttribute("aria-pressed", String(v)); fn(v);
+  };
+  fn(init);
+}
+var spinning = false;
+tog("t-belt",  function(v){ beltG.visible  = v; }, true);
+tog("t-rack",  function(v){ rackG.visible  = v; }, true);
+tog("t-elec",  function(v){ baseG.visible  = v; }, true);
+tog("t-zone",  function(v){ zoneG.visible  = v; }, false);
+tog("t-human", function(v){ scaleG.visible = v; }, true);
+tog("t-spin",  function(v){ spinning = v; }, false);
+
+document.querySelectorAll(".views button").forEach(function(b){
+  b.onclick = function(){ goTo(b.dataset.v); };
+});
+$("expo").addEventListener("input", function(){
+  var v = +this.value / 100;
+  renderer.toneMappingExposure = v;
+  $("expoval").textContent = v.toFixed(2) + "\u00D7";
+});
+$("legtoggle").onclick = function(){
+  var l = $("legend"), hid = l.classList.toggle("hidden");
+  $("legtoggle").textContent = hid ? "Show keys" : "Hide keys";
+};
+$("burger").onclick = function(){ $("rail").classList.toggle("open"); };
+
+/* ======================= loop ======================= */
+function resize(){
+  var w = innerWidth, h = innerHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize);
+resize(); place();
+
+var prev = performance.now();
+function tick(now){
+  var dt = Math.min(0.1,(now-prev)/1000); prev = now;
+  stepWalk(dt);
+  if (follow){
+    var wp = new THREE.Vector3(); follow.getWorldPosition(wp);
+    target.lerp(wp, RM ? 1 : 0.12);
+    if (goal){
+      var kf = RM ? 1 : 1 - Math.pow(0.0025, dt);
+      sph.th  += (goal.th  - sph.th)*kf;
+      sph.ph  += (goal.ph  - sph.ph)*kf;
+      sph.rad += (goal.rad - sph.rad)*kf;
+    }
+    place();
+  } else if (goal){
+    var k = RM ? 1 : 1 - Math.pow(0.0025, dt);
+    sph.th += (goal.th - sph.th)*k;
+    sph.ph += (goal.ph - sph.ph)*k;
+    sph.rad += (goal.rad - sph.rad)*k;
+    if (goal.t) target.lerp(goal.t, k);
+    if (Math.abs(goal.rad - sph.rad) < 1.5) goal = null;
+    place();
+  }
+  if (spinning && !drag && !RM){ sph.th += dt*0.09; place(); }
+  if (playing){
+    var t = clock + dt*speed;
+    if (t >= total){ t = total; setPlay(false); }
+    applyAt(t);
+  }
+  renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+applyAt(0);
+$("etat").textContent = fmt(total) + " total";
+requestAnimationFrame(tick);
+console.log("[ArtBot] scene ready \u2014 THREE r" + THREE.REVISION +
+            ", " + moves.length + " moves, " + pucks.length + " pens");
+} catch (err) {
+  fatal((err && err.message) ? err.message : String(err));
+  if (err && err.stack) console.error(err.stack);
+}
+})();
+</script>
+
