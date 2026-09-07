@@ -163,6 +163,8 @@ reasoning, same grounding. A swap changes nothing but the DIP table.
 | Supply | 9-42 V | 20-50 V (24 V is legal, bottom of range) |
 | Cost each | ~$8-12 | ~$20-30 |
 | Motion | more whine, mid-band resonance | smoother, quieter, cooler |
+| Current set | often a potentiometer, drifts with temperature | DIP switches, digital, no drift |
+| Counterfeits | widespread, TB67S109 in place of the Toshiba part | none reported |
 
 **The DM542 is the better driver and the delta is about $45 across three.**
 It is worth naming why that matters: the original decision accepted TB6600
@@ -176,11 +178,21 @@ the rejection.
 Not overselling: a DM542 is not TMC-in-StealthChop silent. It is an audible
 chopper, just smoother and less resonant.
 
-**If you buy DM542, check two things.** (1) Many DM542 current tables list
-**both RMS and peak columns** while the TB6600 table is peak only - read the
-right column or you will run the motor ~1.4x over rating and cook it.
-(2) Clone quality varies wildly; a real Leadshine and a $12 marketplace
-"DM542" are different products. Neither is a reason not to buy one.
+**Counterfeiting is a TB6600 problem, not a DM542 one.** TB6600 bricks are
+widely sold with TB67S109 or cheaper silicon in place of the Toshiba part,
+often without the seller knowing, giving intermittent failures and thermal
+shutdown. DM542 has no comparable reported clone problem. Brand names on
+DM542 listings (Mingzhe and similar) are marketplace labels on the Leadshine
+design, which is normal - judge the spec block, not the name.
+
+**If you buy DM542, check two things.** (1) **Input voltage.** Legitimate
+variants ship at 20-50 V and 18-50 V, and both are fine on a 24 V PSU. A
+**24-60 V** variant also exists and is real, but 24 V is its floor, so avoid
+it here. **9-42 V is the TB6600 range** - a "DM542" listing showing it is not
+one. (2) **Current table units.** Many DM542 tables list **both RMS and peak
+columns** (the part is 1.0-4.2 A peak / 3.0 A RMS) while the TB6600 table is
+peak only. Read the right column or you will run the motor ~1.4x over rating
+and cook it.
 
 Microstepping stays at **16** either way, so `steps_per_mm: 80` and
 `$100/$101` are unchanged.
